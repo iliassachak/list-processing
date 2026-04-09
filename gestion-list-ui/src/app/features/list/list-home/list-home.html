@@ -1,0 +1,74 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">📄 Mes Listes</h1>
+    @if (auth.isAdmin) {
+      <button class="btn btn-primary" (click)="showUpload=true">⬆️ Uploader une liste</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+      <span>Chargement...</span></div>
+  } @else {
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+      @for (list of lists(); track list.id) {
+        <div class="card" style="cursor:pointer;transition:transform .2s,box-shadow .2s"
+             [routerLink]="['/lists',list.id]"
+             (mouseenter)="hover($event, true)" (mouseleave)="hover($event, false)">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+            <h3 style="font-size:16px;font-weight:600">{{ list.name }}</h3>
+            <span class="badge badge-blue">{{ list.totalRows }} lignes</span>
+          </div>
+          <div style="font-size:12px;color:#6b7280;display:flex;flex-direction:column;gap:4px">
+            <span>📅 {{ list.createdAt | date:'dd/MM/yyyy' }}</span>
+            <span>👤 {{ list.createdBy }}</span>
+            <span>🗂️ {{ list.columns.length }} colonnes</span>
+          </div>
+          <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:4px">
+            @for (col of list.columns.slice(0, 4); track col.id) {
+              <span class="badge badge-gray">{{ col.name }}</span>
+            }
+            @if (list.columns.length > 4) {
+              <span class="badge badge-gray">+{{ list.columns.length - 4 }}</span>
+            }
+          </div>
+        </div>
+      }
+      @if (!lists().length) {
+        <div class="card" style="text-align:center;padding:48px;color:#6b7280;grid-column:1/-1">
+          <div style="font-size:48px;margin-bottom:16px">📭</div>
+          <p>Aucune liste disponible.</p>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+@if (showUpload) {
+  <div class="modal-overlay" (click)="showUpload=false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <span class="modal__title">⬆️ Uploader une liste Excel</span>
+        <button class="btn btn-secondary btn-sm" (click)="showUpload=false">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom de la liste</label>
+        <input class="form-control" [(ngModel)]="uploadName" placeholder="ex: Liste clients Q1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fichier Excel (.xlsx)</label>
+        <input type="file" accept=".xlsx,.xls" (change)="onFile($event)" class="form-control">
+      </div>
+      @if (selectedFile) {
+        <div class="alert alert-info">📎 {{ selectedFile.name }}</div>
+      }
+      <div class="modal__footer">
+        <button class="btn btn-secondary" (click)="showUpload=false">Annuler</button>
+        <button class="btn btn-primary" (click)="upload()" [disabled]="!selectedFile||!uploadName||uploading">
+          {{ uploading ? 'Upload en cours...' : 'Importer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

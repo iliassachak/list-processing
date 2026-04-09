@@ -1,0 +1,125 @@
+<div class="page">
+  <!-- Header -->
+  <div class="page-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <a routerLink="/lists" class="btn btn-secondary btn-sm">← Retour</a>
+      <div>
+        <h1 class="page-title">{{meta()?.name}}</h1>
+        <div style="font-size:12px;color:#6b7280;margin-top:2px">
+          {{rows().length}} ligne(s) affichée(s) · {{meta()?.columns?.length}} colonne(s)
+          @if (!auth.isAdmin) { · <span style="color:#4f46e5">Plage assignée uniquement</span> }
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      @if (wsConnected()) { <span style="color:#10b981;font-size:12px">🟢 Sync temps réel</span> }
+      @if (auth.isAdmin) {
+        <button class="btn btn-outline" (click)="downloadExcel()">⬇️ Excel</button>
+        <button class="btn btn-success" (click)="showAddRow=true">+ Ligne</button>
+        <a [routerLink]="['/admin/lists',listId]" class="btn btn-secondary">⚙️ Admin</a>
+      }
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  @if (activeFilters().length > 0) {
+    <div class="filter-bar">
+      <span style="font-size:12px;color:#6b7280;font-weight:500">Filtres actifs :</span>
+      @for (f of activeFilters(); track f.col) {
+        <div class="filter-chip">
+          <span>{{f.col}} = "{{f.val}}"</span>
+          <button (click)="removeFilter(f.col)">×</button>
+        </div>
+      }
+      <button class="btn btn-secondary btn-sm" (click)="clearFilters()">Tout effacer</button>
+    </div>
+  }
+
+  <!-- AG Grid -->
+  @if (loading()) {
+    <div class="loading-overlay"><div class="spinner"></div><span>Chargement des données...</span></div>
+  } @else {
+    <div class="table-wrap" [style.height]="gridHeight">
+      <ag-grid-angular
+        class="ag-theme-quartz"
+        style="width:100%;height:100%"
+        [rowData]="filteredRows()"
+        [columnDefs]="colDefs()"
+        [defaultColDef]="defaultColDef"
+        [getRowId]="getRowId"
+        [animateRows]="true"
+        [stopEditingWhenCellsLoseFocus]="true"
+        (gridReady)="onGridReady($event)"
+        (cellValueChanged)="onCellChanged($event)"
+      />
+    </div>
+  }
+</div>
+
+<!-- Add Row Modal -->
+@if (showAddRow && auth.isAdmin) {
+  <div class="modal-overlay" (click)="showAddRow=false">
+    <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <span class="modal__title">➕ Ajouter une ligne</span>
+        <button class="btn btn-secondary btn-sm" (click)="showAddRow=false">✕</button>
+      </div>
+      <div style="max-height:50vh;overflow-y:auto;padding-right:4px">
+        @for (col of meta()?.columns ?? []; track col.id) {
+          <div class="form-group">
+            <label class="form-label">{{col.name}}</label>
+            <input class="form-control" [(ngModel)]="newRowData[col.name]"
+                   [type]="col.type==='NUMBER'?'number':col.type==='DATE'?'date':'text'"
+                   [placeholder]="col.name">
+          </div>
+        }
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assigner à un utilisateur (optionnel)</label>
+        <select class="form-control" [(ngModel)]="newRowAssignTo">
+          <option value="">— Aucun —</option>
+          @for (u of users(); track u.id) {
+            <option [value]="u.id">{{u.username}}</option>
+          }
+        </select>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn-secondary" (click)="showAddRow=false">Annuler</button>
+        <button class="btn btn-primary" (click)="addRow()" [disabled]="addingRow">
+          {{addingRow ? 'Ajout...' : 'Ajouter'}}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Column Filter Modal -->
+@if (filterModal.show) {
+  <div class="modal-overlay" (click)="filterModal.show=false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <span class="modal__title">🔍 Filtrer : {{filterModal.col}}</span>
+        <button class="btn btn-secondary btn-sm" (click)="filterModal.show=false">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valeur</label>
+        <input class="form-control" [(ngModel)]="filterModal.val"
+               (keyup.enter)="applyFilter()"
+               placeholder="Saisir une valeur...">
+      </div>
+      <div style="max-height:200px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px">
+        @for (v of filterModal.suggestions; track v) {
+          <div
+            class="item"
+            (click)="filterModal.val=v;applyFilter()">
+            {{v || '(vide)'}}
+          </div>
+        }
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn-secondary" (click)="filterModal.show=false">Annuler</button>
+        <button class="btn btn-primary" (click)="applyFilter()">Appliquer</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,32 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">⚙️ Administration</h1>
+  </div>
+  <div class="alert alert-info">
+    Gérez les listes, assignez des plages de lignes aux utilisateurs et configurez les permissions de colonnes.
+  </div>
+  @if (loading()) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+  } @else {
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+      @for (list of lists(); track list.id) {
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <h3 style="font-size:16px;font-weight:600">{{ list.name }}</h3>
+            <span class="badge badge-blue">{{ list.totalRows }} lignes</span>
+          </div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:16px">
+            <div>📅 {{ list.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+            <div>👤 {{ list.createdBy }}</div>
+            <div>🗂️ {{ list.columns.length }} colonnes</div>
+          </div>
+          <a [routerLink]="['/admin/lists',list.id]" class="btn btn-primary" style="width:100%">
+            ⚙️ Gérer cette liste
+          </a>
+        </div>
+      }
+    </div>
+  }
+</div>
