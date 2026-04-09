@@ -38,6 +38,7 @@ export class ListHome implements OnInit {
     this.listSvc.getLists().subscribe({
       next: l => {
         this.lists.set(l);
+        console.log(l);
         this.loading.set(false);
       },
       error: () => this.loading.set(false)

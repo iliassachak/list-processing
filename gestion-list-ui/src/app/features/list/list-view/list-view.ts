@@ -104,7 +104,7 @@ export class ListView implements OnInit, OnDestroy {
     cols.forEach(col => {
       const isEditable = this.editableCols.has(col.name);
       defs.push({
-        field: col.name,
+        field: `data.${col.name}`,
         headerName: col.name,
         editable: isEditable,
         cellStyle: isEditable ? {backgroundColor: '#f0f9ff', cursor: 'pointer'} : {},
@@ -175,7 +175,7 @@ export class ListView implements OnInit, OnDestroy {
   onCellChanged(e: CellValueChangedEvent) {
     if (e.colDef.field === '_actions') return;
     const row: Row = e.data;
-    this.listSvc.updateCell(this.listId, row.id, e.colDef.field!, e.newValue).subscribe({
+    this.listSvc.updateCell(this.listId, row.id, e.colDef.headerName!, e.newValue).subscribe({
       error: () => {
         this.toast.show('Erreur: modification non autorisée', 'error');
         this.rows.update(rows => rows.map(r => r.id === row.id ? {

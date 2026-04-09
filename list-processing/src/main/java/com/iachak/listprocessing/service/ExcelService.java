@@ -48,15 +48,23 @@ public class ExcelService {
                 cols.add(c);
             }
             list.setColumns(cols);
-            list.setTotalRows(sheet.getLastRowNum());
             listRepo.save(list);
+            int realCount = 0;
+
 
             List<ListRow> rows = new ArrayList<>();
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
+
+                if (isRowEmpty(row)) {
+                    continue; // 👈 skip lignes vides
+                }
+
+                realCount++;
+
                 Map<String, Object> data = new LinkedHashMap<>();
                 for (ListColumn c : cols) {
-                    Cell cell = row != null ? row.getCell(c.getColumnIndex()) : null;
+                    Cell cell = row.getCell(c.getColumnIndex());
                     data.put(c.getColumnName(), extractVal(cell));
                 }
                 ListRow lr = new ListRow();
@@ -70,6 +78,8 @@ public class ExcelService {
                 }
             }
             if (!rows.isEmpty()) rowRepo.saveAll(rows);
+            list.setTotalRows(realCount);
+            listRepo.save(list);
         }
         return list;
     }
@@ -149,4 +159,17 @@ public class ExcelService {
         };
     }
 
+    private boolean isRowEmpty(Row row) {
+        if (row == null) return true;
+
+        for (int i = row.getFirstCellNum(); i < row.getLastCellNum(); i++) {
+            Cell cell = row.getCell(i);
+            if (cell != null && cell.getCellType() != CellType.BLANK) {
+                if (cell.getCellType() != CellType.STRING || !cell.getStringCellValue().isBlank()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 }

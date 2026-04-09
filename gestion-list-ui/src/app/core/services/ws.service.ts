@@ -15,7 +15,7 @@ export class WsService {
 
   connect(): void {
     this.client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS('http://localhost:8080/api/ws'),
       connectHeaders: {Authorization: `Bearer ${this.auth.token}`},
       reconnectDelay: 3000,
       onStompError: (f) => console.error('STOMP error', f),
