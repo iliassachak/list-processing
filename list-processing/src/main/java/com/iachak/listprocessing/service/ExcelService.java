@@ -49,8 +49,6 @@ public class ExcelService {
             }
             list.setColumns(cols);
             listRepo.save(list);
-            int realCount = 0;
-
 
             List<ListRow> rows = new ArrayList<>();
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
@@ -59,8 +57,6 @@ public class ExcelService {
                 if (isRowEmpty(row)) {
                     continue; // 👈 skip lignes vides
                 }
-
-                realCount++;
 
                 Map<String, Object> data = new LinkedHashMap<>();
                 for (ListColumn c : cols) {
@@ -78,8 +74,6 @@ public class ExcelService {
                 }
             }
             if (!rows.isEmpty()) rowRepo.saveAll(rows);
-            list.setTotalRows(realCount);
-            listRepo.save(list);
         }
         return list;
     }

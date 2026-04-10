@@ -62,7 +62,6 @@ public class RowService {
         row.setLastModifiedAt(LocalDateTime.now());
         row.setLastModifiedBy(admin);
         rowRepo.save(row);
-        list.setTotalRows(nextIdx + 1);
         listRepo.save(list);
 
         if (assignToUserId != null) {
@@ -84,10 +83,6 @@ public class RowService {
                 .orElseThrow(() -> new NoSuchElementException("Row not found"));
         int idx = row.getRowIndex();
         rowRepo.delete(row);
-        listRepo.findById(listId).ifPresent(l -> {
-            l.setTotalRows(Math.max(0, (l.getTotalRows() != null ? l.getTotalRows() : 1) - 1));
-            listRepo.save(l);
-        });
         ws.convertAndSend(topic(listId), WsEvent.rowDeleted(rowId, idx, admin.getUsername()));
     }
 }

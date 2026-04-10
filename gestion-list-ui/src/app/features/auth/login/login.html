@@ -21,6 +21,12 @@
       <button class="btn btn-primary" style="width:100%" type="submit" [disabled]="loading">
         {{ loading ? 'Connexion...' : 'Se connecter' }}
       </button>
+      <div style="text-align:center;font-size:14px;color:#6b7280;margin-top:12px">
+        Pas encore de compte ?
+        <a routerLink="/register" style="color:#4f46e5;font-weight:500;text-decoration:none">
+          S'inscrire
+        </a>
+      </div>
     </form>
   </div>
 </div>

@@ -27,6 +27,12 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
+  register(username: string, email: string, password: string) {
+    return this.http.post<AuthResponse>(`${API}/register`, { username, email, password }).pipe(
+      tap(res => { localStorage.setItem('auth', JSON.stringify(res)); this.currentUser.set(res); })
+    );
+  }
+
   get token() { return this.currentUser()?.token ?? null; }
   get isAdmin() { return this.currentUser()?.roles.includes('ADMIN') ?? false; }
   get isLoggedIn() { return !!this.currentUser(); }

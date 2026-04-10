@@ -11,30 +11,38 @@ import java.util.UUID;
 import java.util.List;
 
 @Entity
-@Table(name="lists")
+@Table(name = "lists")
 @Getter
 @Setter
 @NoArgsConstructor
 public class ListEntity {
     @Id
-    @GeneratedValue(strategy=GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable=false)
+    @Column(nullable = false)
     private String name;
 
     private String description;
 
-    @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="created_by")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
     private User createdBy;
 
-    @Column(nullable=false)
-    private LocalDateTime createdAt= LocalDateTime.now();
+    @Column(nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    private Integer totalRows=0;
-
-    @OneToMany(mappedBy="list",cascade=CascadeType.ALL,orphanRemoval=true)
+    @OneToMany(mappedBy = "list", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("columnIndex ASC")
-    private List<ListColumn> columns=new ArrayList<>();
+    private List<ListColumn> columns = new ArrayList<>();
+
+    @OneToMany(mappedBy = "list", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("rowIndex ASC")
+    private List<ListRow> rows = new ArrayList<>();
+
+
+    @Transient
+    public Integer getTotalRows() {
+        return rows.size();
+    }
 }

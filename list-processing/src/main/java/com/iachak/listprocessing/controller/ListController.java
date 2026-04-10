@@ -25,8 +25,9 @@ public class ListController {
     private final RowService rowService;
 
     @GetMapping
-    public ResponseEntity<List<ListDTO>> getAll() {
-        return ResponseEntity.ok(listService.getAll());
+    public ResponseEntity<List<ListDTO>> getAll(@AuthenticationPrincipal UserDetails ud) {
+        User user = ((AppUserDetails) ud).getUser();
+        return ResponseEntity.ok(listService.getAll(user));
     }
 
     @GetMapping("/{id}")

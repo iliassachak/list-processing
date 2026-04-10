@@ -3,10 +3,7 @@ package com.iachak.listprocessing.service;
 import com.iachak.listprocessing.dto.AssignmentDTO;
 import com.iachak.listprocessing.dto.ListDTO;
 import com.iachak.listprocessing.dto.RowDTO;
-import com.iachak.listprocessing.entity.ColumnPermission;
-import com.iachak.listprocessing.entity.ListEntity;
-import com.iachak.listprocessing.entity.ListRow;
-import com.iachak.listprocessing.entity.RowAssignment;
+import com.iachak.listprocessing.entity.*;
 import com.iachak.listprocessing.repository.ColumnPermissionRepository;
 import com.iachak.listprocessing.repository.ListRepository;
 import com.iachak.listprocessing.repository.ListRowRepository;
@@ -26,8 +23,14 @@ public class ListService {
     private final RowAssignmentRepository assignRepo;
     private final ColumnPermissionRepository permRepo;
 
-    public List<ListDTO> getAll() {
-        return listRepo.findAll().stream().map(ListDTO::from).toList();
+    public List<ListDTO> getAll(User user) {
+        if (user.getRoles().contains(Role.ADMIN)){
+            return listRepo.findAll().stream().map(ListDTO::from).toList();
+        } else {
+            return assignRepo.findListsByUser(user).stream()
+                    .map(ListDTO::from)
+                    .toList();
+        }
     }
 
     public ListEntity getEntity(UUID id) {

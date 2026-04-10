@@ -1,6 +1,8 @@
 package com.iachak.listprocessing.repository;
 
+import com.iachak.listprocessing.entity.ListEntity;
 import com.iachak.listprocessing.entity.RowAssignment;
+import com.iachak.listprocessing.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,4 +20,11 @@ public interface RowAssignmentRepository extends JpaRepository<RowAssignment,UUI
     boolean isRowInUserRange(@Param("listId") UUID listId,
                              @Param("rowId") UUID rowId,
                              @Param("userId") UUID userId);
+
+    @Query("""
+        SELECT DISTINCT ra.list
+        FROM RowAssignment ra
+        WHERE ra.user = :user
+    """)
+    List<ListEntity> findListsByUser(User user);
 }
