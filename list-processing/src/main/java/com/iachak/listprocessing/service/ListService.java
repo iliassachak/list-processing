@@ -41,6 +41,20 @@ public class ListService {
         return ListDTO.from(getEntity(id));
     }
 
+    @Transactional
+    public void deleteList(UUID listId) {
+        ListEntity list = getEntity(listId);
+
+        // 1. Supprimer les column permissions (pas de cascade depuis ListEntity)
+        permRepo.deleteByListId(listId);
+
+        // 2. Supprimer les row assignments (pas de cascade depuis ListEntity)
+        assignRepo.deleteByListId(listId);
+
+        // 3. Supprimer la liste (cascade ALL → colonnes + lignes supprimées automatiquement)
+        listRepo.delete(list);
+    }
+
     public List<RowDTO> getAllRows(UUID listId) {
         return rowRepo.findByListIdOrderByRowIndex(listId).stream().map(RowDTO::from).toList();
     }

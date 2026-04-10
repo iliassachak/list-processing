@@ -18,6 +18,10 @@ export class ListService {
     return this.http.get<ListMeta>(`${API}/lists/${id}`);
   }
 
+  deleteList(listId: string) {
+    return this.http.delete(`${API}/lists/${listId}`);
+  }
+
   getRows(id: string) {
     return this.http.get<Row[]>(`${API}/lists/${id}/rows`);
   }

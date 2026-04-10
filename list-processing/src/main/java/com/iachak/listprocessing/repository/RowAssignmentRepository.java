@@ -13,6 +13,7 @@ import java.util.UUID;
 public interface RowAssignmentRepository extends JpaRepository<RowAssignment,UUID> {
     List<RowAssignment> findByListId(UUID listId);
     List<RowAssignment> findByListIdAndUserId(UUID listId, UUID userId);
+    void deleteByListId(UUID listId);
 
     @Query("SELECT CASE WHEN COUNT(ra)>0 THEN true ELSE false END " +
             "FROM RowAssignment ra JOIN ListRow lr ON lr.list.id=ra.list.id AND lr.id=:rowId " +

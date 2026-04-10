@@ -72,4 +72,17 @@ export class ListHome implements OnInit {
       }
     });
   }
+
+  confirmDelete(list: ListMeta, event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation(); // évite la navigation vers la liste
+    if (!confirm(`Supprimer définitivement la liste "${list.name}" ?\n\nToutes ses lignes, colonnes, assignations et permissions seront supprimées.`)) return;
+    this.listSvc.deleteList(list.id).subscribe({
+      next: () => {
+        this.lists.update(ls => ls.filter(l => l.id !== list.id));
+        this.toast.show(`Liste "${list.name}" supprimée`, 'success');
+      },
+      error: () => this.toast.show('Erreur lors de la suppression', 'error')
+    });
+  }
 }

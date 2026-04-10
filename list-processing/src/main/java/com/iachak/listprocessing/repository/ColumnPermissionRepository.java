@@ -12,6 +12,7 @@ public interface ColumnPermissionRepository extends JpaRepository<ColumnPermissi
 
     List<ColumnPermission> findByListId(UUID listId);
     List<ColumnPermission> findByListIdAndUserId(UUID listId, UUID userId);
+    void deleteByListId(UUID listId);
 
     @Query("DELETE FROM ColumnPermission cp WHERE cp.list.id=:lid AND cp.user.id=:uid AND cp.columnName=:col")
     @org.springframework.data.jpa.repository.Modifying

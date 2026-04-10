@@ -65,6 +65,13 @@ public class ListController {
         return ResponseEntity.ok(listService.getEditableColumns(listId, user.getId()));
     }
 
+    @DeleteMapping("/{listId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteList(@PathVariable UUID listId) {
+        listService.deleteList(listId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{listId}/rows/{rowId}/cell")
     public ResponseEntity<RowDTO> updateCell(@PathVariable UUID listId,
                                              @PathVariable UUID rowId,
