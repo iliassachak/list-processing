@@ -68,18 +68,18 @@
           <thead>
           <tr>
             <th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb">Colonne</th>
-            @for (u of users(); track u.id) {
+            @for (col of meta()?.columns ?? []; track col.id) {
               <th style="padding:8px;border-bottom:2px solid #e5e7eb;text-align:center">
-                <div style="font-weight:500">{{u.username}}</div>
+                <div style="font-weight:500">{{col.name}}</div>
               </th>
             }
           </tr>
           </thead>
           <tbody>
-            @for (col of meta()?.columns ?? []; track col.id) {
+            @for (u of users(); track u.id) {
               <tr style="border-bottom:1px solid #f3f4f6">
-                <td style="padding:8px;font-weight:500">{{col.name}}</td>
-                @for (u of users(); track u.id) {
+                <td style="padding:8px;font-weight:500">{{u.username}}</td>
+                @for (col of meta()?.columns ?? []; track col.id) {
                   <td style="padding:8px;text-align:center">
                     <input type="checkbox"
                            [checked]="getPermission(u.id, col.name)"
