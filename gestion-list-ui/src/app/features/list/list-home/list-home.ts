@@ -6,6 +6,7 @@ import {ListMeta} from '../../../core/models/models';
 import {FormsModule} from '@angular/forms';
 import {DatePipe} from '@angular/common';
 import {RouterLink} from '@angular/router';
+import {HttpEventType} from '@angular/common/http';
 
 @Component({
   selector: 'app-list-home',
@@ -28,6 +29,10 @@ export class ListHome implements OnInit {
   uploadName = '';
   selectedFile: File | null = null;
   uploading = false;
+  uploadProgress = 0;          // 0-100
+  uploadPhase: 'uploading' | 'processing' | 'done' | '' = '';
+  deletingListId: string | null = null;
+  deletingListName = '';
 
   ngOnInit() {
     this.load();
@@ -57,32 +62,66 @@ export class ListHome implements OnInit {
   upload() {
     if (!this.selectedFile || !this.uploadName) return;
     this.uploading = true;
+    this.uploadProgress = 0;
+    this.uploadPhase = 'uploading';
+
     this.listSvc.uploadList(this.selectedFile, this.uploadName).subscribe({
-      next: () => {
-        this.toast.show('Liste importée avec succès !', 'success');
-        this.showUpload = false;
-        this.uploading = false;
-        this.uploadName = '';
-        this.selectedFile = null;
-        this.load();
+      next: (event: any) => {
+        if (event.type === HttpEventType.UploadProgress && event.total) {
+          // Pendant le transfert fichier → 0..90%
+          this.uploadProgress = Math.round(90 * event.loaded / event.total);
+        } else if (event.type === HttpEventType.Response) {
+          // Serveur a répondu → passe à 100%
+          this.uploadProgress = 100;
+          this.uploadPhase = 'done';
+          setTimeout(() => {
+            this.toast.show('Liste importée avec succès !', 'success');
+            this.showUpload = false;
+            this.uploading = false;
+            this.uploadProgress = 0;
+            this.uploadPhase = '';
+            this.uploadName = '';
+            this.selectedFile = null;
+            this.load();
+          }, 600);
+        } else if (event.type === HttpEventType.Sent) {
+          // Requête envoyée, serveur traite → montre "Traitement..."
+          this.uploadPhase = 'processing';
+        }
       },
       error: () => {
         this.toast.show('Erreur lors de l\'import', 'error');
         this.uploading = false;
+        this.uploadProgress = 0;
+        this.uploadPhase = '';
       }
     });
   }
 
   confirmDelete(list: ListMeta, event: MouseEvent) {
     event.preventDefault();
-    event.stopPropagation(); // évite la navigation vers la liste
-    if (!confirm(`Supprimer définitivement la liste "${list.name}" ?\n\nToutes ses lignes, colonnes, assignations et permissions seront supprimées.`)) return;
+    event.stopPropagation();
+
+    if (!confirm(
+      `Supprimer définitivement la liste "${list.name}" ?\n\n` +
+      `Toutes ses lignes, colonnes, assignations et permissions seront supprimées.`
+    )) return;
+
+    this.deletingListId = list.id;
+    this.deletingListName = list.name;
+
     this.listSvc.deleteList(list.id).subscribe({
       next: () => {
         this.lists.update(ls => ls.filter(l => l.id !== list.id));
         this.toast.show(`Liste "${list.name}" supprimée`, 'success');
+        this.deletingListId = null;
+        this.deletingListName = '';
       },
-      error: () => this.toast.show('Erreur lors de la suppression', 'error')
+      error: () => {
+        this.toast.show('Erreur lors de la suppression', 'error');
+        this.deletingListId = null;
+        this.deletingListName = '';
+      }
     });
   }
 }

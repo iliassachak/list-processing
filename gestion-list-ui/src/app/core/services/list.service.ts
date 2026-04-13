@@ -1,5 +1,5 @@
 import {inject, Injectable} from '@angular/core';
-import {HttpClient} from '@angular/common/http';
+import {HttpClient, HttpRequest} from '@angular/common/http';
 import {Assignment, ListMeta, Row} from '../models/models';
 
 const API = 'http://localhost:8080/api';
@@ -34,7 +34,13 @@ export class ListService {
     const form = new FormData();
     form.append('file', file);
     form.append('name', name);
-    return this.http.post<ListMeta>(`${API}/lists`, form);
+
+    const req = new HttpRequest('POST', `${API}/lists`, form, {
+      reportProgress: true,   // ← active les événements de progression
+      observe: 'events' as const,
+    } as any);
+
+    return this.http.request<any>(req);
   }
 
   updateCell(listId: string, rowId: string, columnName: string, value: any) {

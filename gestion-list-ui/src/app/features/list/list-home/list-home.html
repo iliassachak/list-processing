@@ -48,32 +48,93 @@
       }
     </div>
   }
+
+  @if (deletingListId) {
+    <div class="modal-overlay" style="z-index:2000;flex-direction:column;gap:20px">
+      <div style="background:#fff;border-radius:16px;padding:40px 48px;
+                display:flex;flex-direction:column;align-items:center;gap:16px;
+                box-shadow:0 20px 60px rgba(0,0,0,.25);min-width:280px;text-align:center">
+        <div class="spinner" style="width:44px;height:44px;border-width:4px"></div>
+        <div>
+          <div style="font-size:16px;font-weight:600;color:#1a1a2e;margin-bottom:6px">
+            Suppression en cours...
+          </div>
+          <div style="font-size:13px;color:#6b7280">
+            "{{deletingListName}}"
+          </div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:8px">
+            Colonnes · Lignes · Assignations · Permissions
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 </div>
 
 @if (showUpload) {
-  <div class="modal-overlay" (click)="showUpload=false">
+  <div class="modal-overlay" (click)="!uploading && (showUpload=false)">
     <div class="modal" (click)="$event.stopPropagation()">
+
       <div class="modal__header">
         <span class="modal__title">⬆️ Uploader une liste Excel</span>
-        <button class="btn btn-secondary btn-sm" (click)="showUpload=false">✕</button>
+        @if (!uploading) {
+          <button class="btn btn-secondary btn-sm" (click)="showUpload=false">✕</button>
+        }
       </div>
-      <div class="form-group">
-        <label class="form-label">Nom de la liste</label>
-        <input class="form-control" [(ngModel)]="uploadName" placeholder="ex: Liste clients Q1">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Fichier Excel (.xlsx)</label>
-        <input type="file" accept=".xlsx,.xls" (change)="onFile($event)" class="form-control">
-      </div>
-      @if (selectedFile) {
-        <div class="alert alert-info">📎 {{ selectedFile.name }}</div>
+
+      @if (!uploading) {
+        <div class="form-group">
+          <label class="form-label">Nom de la liste</label>
+          <input class="form-control" [(ngModel)]="uploadName" placeholder="ex: Liste clients Q1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fichier Excel (.xlsx)</label>
+          <input type="file" accept=".xlsx,.xls" (change)="onFile($event)" class="form-control">
+        </div>
+        @if (selectedFile) {
+          <div class="alert alert-info">
+            📎 {{selectedFile.name}}
+            <span style="color:#6b7280;font-size:12px;margin-left:8px">
+              ({{(selectedFile.size / 1024).toFixed(0)}} Ko)
+            </span>
+          </div>
+        }
+        <div class="modal__footer">
+          <button class="btn btn-secondary" (click)="showUpload=false">Annuler</button>
+          <button class="btn btn-primary" (click)="upload()" [disabled]="!selectedFile || !uploadName">
+            Importer
+          </button>
+        </div>
+
+      } @else {
+
+        <div style="padding:8px 0 24px">
+          <!-- Label de phase -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-size:14px;color:#374151;font-weight:500">
+              @if (uploadPhase === 'uploading')   { ⬆️ Transfert du fichier... }
+              @if (uploadPhase === 'processing')  { ⚙️ Traitement par le serveur... }
+              @if (uploadPhase === 'done')        { ✅ Import terminé ! }
+            </span>
+            <span style="font-size:13px;font-weight:600;color:#4f46e5">{{uploadProgress}}%</span>
+          </div>
+
+          <!-- Barre de progression -->
+          <div style="background:#e5e7eb;border-radius:99px;height:10px;overflow:hidden">
+            <div [style.width.%]="uploadProgress"
+                 [style.background]="uploadPhase === 'done' ? '#10b981' : '#4f46e5'"
+                 style="height:100%;border-radius:99px;transition:width .3s ease,background .4s ease">
+            </div>
+          </div>
+
+          <!-- Infos fichier -->
+          <div style="margin-top:12px;font-size:12px;color:#6b7280;text-align:center">
+            📎 {{selectedFile?.name}} ·
+            {{(selectedFile?.size ?? 0 / 1024).toFixed(0)}} Ko
+          </div>
+        </div>
       }
-      <div class="modal__footer">
-        <button class="btn btn-secondary" (click)="showUpload=false">Annuler</button>
-        <button class="btn btn-primary" (click)="upload()" [disabled]="!selectedFile||!uploadName||uploading">
-          {{ uploading ? 'Upload en cours...' : 'Importer' }}
-        </button>
-      </div>
+
     </div>
   </div>
 }
