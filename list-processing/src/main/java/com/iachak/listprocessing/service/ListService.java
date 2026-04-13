@@ -3,12 +3,14 @@ package com.iachak.listprocessing.service;
 import com.iachak.listprocessing.dto.AssignmentDTO;
 import com.iachak.listprocessing.dto.ListDTO;
 import com.iachak.listprocessing.dto.RowDTO;
+import com.iachak.listprocessing.dto.WsGlobalEvent;
 import com.iachak.listprocessing.entity.*;
 import com.iachak.listprocessing.repository.ColumnPermissionRepository;
 import com.iachak.listprocessing.repository.ListRepository;
 import com.iachak.listprocessing.repository.ListRowRepository;
 import com.iachak.listprocessing.repository.RowAssignmentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ public class ListService {
     private final ListRowRepository rowRepo;
     private final RowAssignmentRepository assignRepo;
     private final ColumnPermissionRepository permRepo;
+    private final SimpMessagingTemplate ws;
 
     public List<ListDTO> getAll(User user) {
         if (user.getRoles().contains(Role.ADMIN)){
@@ -42,17 +45,13 @@ public class ListService {
     }
 
     @Transactional
-    public void deleteList(UUID listId) {
+    public void deleteList(UUID listId, String deletedBy) {
         ListEntity list = getEntity(listId);
-
-        // 1. Supprimer les column permissions (pas de cascade depuis ListEntity)
         permRepo.deleteByListId(listId);
-
-        // 2. Supprimer les row assignments (pas de cascade depuis ListEntity)
         assignRepo.deleteByListId(listId);
-
-        // 3. Supprimer la liste (cascade ALL → colonnes + lignes supprimées automatiquement)
         listRepo.delete(list);
+        ws.convertAndSend("/topic/global",
+                WsGlobalEvent.listDeleted(listId.toString(), deletedBy));
     }
 
     public List<RowDTO> getAllRows(UUID listId) {

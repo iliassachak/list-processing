@@ -1,4 +1,4 @@
-import {Component, inject, OnInit, signal} from '@angular/core';
+import {Component, inject, OnDestroy, OnInit, signal} from '@angular/core';
 import {AuthService} from '../../../core/services/auth.service';
 import {ListService} from '../../../core/services/list.service';
 import {ToastService} from '../../../core/services/toast.service';
@@ -7,6 +7,8 @@ import {FormsModule} from '@angular/forms';
 import {DatePipe} from '@angular/common';
 import {RouterLink} from '@angular/router';
 import {HttpEventType} from '@angular/common/http';
+import {Subscription} from 'rxjs';
+import {WsService} from '../../../core/services/ws.service';
 
 @Component({
   selector: 'app-list-home',
@@ -18,10 +20,11 @@ import {HttpEventType} from '@angular/common/http';
   templateUrl: './list-home.html',
   styleUrl: './list-home.scss',
 })
-export class ListHome implements OnInit {
+export class ListHome implements OnInit, OnDestroy {
   auth = inject(AuthService);
   private listSvc = inject(ListService);
   private toast = inject(ToastService);
+  private wsSvc = inject(WsService);
 
   lists = signal<ListMeta[]>([]);
   loading = signal(true);
@@ -33,9 +36,31 @@ export class ListHome implements OnInit {
   uploadPhase: 'uploading' | 'processing' | 'done' | '' = '';
   deletingListId: string | null = null;
   deletingListName = '';
+  private wsSub?: Subscription;
 
   ngOnInit() {
     this.load();
+
+    this.wsSvc.connect();
+    this.wsSub = this.wsSvc.subscribeGlobal().subscribe((evt: any) => {
+      if (evt.type === 'LIST_ADDED') {
+        // Si C'EST cet onglet qui uploade → ignorer, le handler HTTP s'en charge
+        if (this.uploading) return;
+        // Sinon c'est un autre admin → recharger
+        this.load();
+
+      } else if (evt.type === 'LIST_DELETED') {
+        this.lists.update(ls => ls.filter(l => l.id !== evt.listId));
+
+      } else if (evt.type === 'ASSIGNMENT_CHANGED') {
+        this.load();
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.wsSub?.unsubscribe();
+    this.wsSvc.disconnect();
   }
 
   load() {

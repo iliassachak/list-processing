@@ -12,6 +12,7 @@ export class WsService {
   private auth = inject(AuthService);
   private client?: Client;
   private subs = new Map<string, Subject<WsEvent>>();
+  private globalSubject = new Subject<any>();
 
   connect(): void {
     this.client = new Client({
@@ -41,6 +42,20 @@ export class WsService {
     if (this.client?.connected) doSub();
     else this.client!.onConnect = () => doSub();
     return subject.asObservable();
+  }
+
+  subscribeGlobal(): Observable<any> {
+    const doSub = () => {
+      this.client!.subscribe('/topic/global', (msg: IMessage) => {
+        try { this.globalSubject.next(JSON.parse(msg.body)); } catch {}
+      });
+    };
+    if (this.client?.connected) doSub();
+    else {
+      const prev = this.client!.onConnect;
+      this.client!.onConnect = (frame) => { prev?.(frame); doSub(); };
+    }
+    return this.globalSubject.asObservable();
   }
 
   disconnect(): void {

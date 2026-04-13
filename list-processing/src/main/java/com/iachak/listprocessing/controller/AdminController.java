@@ -4,13 +4,17 @@ import com.iachak.listprocessing.dto.AssignRowsRequest;
 import com.iachak.listprocessing.dto.AssignmentDTO;
 import com.iachak.listprocessing.dto.ColumnPermRequest;
 import com.iachak.listprocessing.dto.UserDTO;
+import com.iachak.listprocessing.entity.User;
 import com.iachak.listprocessing.repository.UserRepository;
+import com.iachak.listprocessing.security.AppUserDetails;
 import com.iachak.listprocessing.service.AssignmentService;
 import com.iachak.listprocessing.service.ListService;
 import com.iachak.listprocessing.service.PermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -44,8 +48,9 @@ public class AdminController {
     }
 
     @DeleteMapping("/lists/{listId}/assignments/{id}")
-    public ResponseEntity<Void> deleteAssignment(@PathVariable UUID listId,@PathVariable UUID id){
-        assignService.delete(id,listId);
+    public ResponseEntity<Void> deleteAssignment(@PathVariable UUID listId,@PathVariable UUID id, @AuthenticationPrincipal UserDetails ud){
+        User user = ((AppUserDetails) ud).getUser();
+        assignService.delete(id,listId, user.getUsername());
         return ResponseEntity.noContent().build();
     }
 

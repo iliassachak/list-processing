@@ -1,7 +1,7 @@
 package com.iachak.listprocessing.service;
 
 import com.iachak.listprocessing.dto.AssignmentDTO;
-import com.iachak.listprocessing.dto.WsEvent;
+import com.iachak.listprocessing.dto.WsGlobalEvent;
 import com.iachak.listprocessing.entity.ListEntity;
 import com.iachak.listprocessing.entity.RowAssignment;
 import com.iachak.listprocessing.entity.User;
@@ -33,12 +33,14 @@ public class AssignmentService {
         a.setStartRow(start);
         a.setEndRow(end);
         assignRepo.save(a);
-        ws.convertAndSend("/topic/list." + listId, WsEvent.assignmentChanged());
+        ws.convertAndSend("/topic/global",
+                WsGlobalEvent.assignmentChanged(listId.toString(), user.getUsername()));
         return AssignmentDTO.from(a);
     }
 
-    public void delete(UUID id,UUID listId){
+    public void delete(UUID id,UUID listId, String deletedBy){
         assignRepo.deleteById(id);
-        ws.convertAndSend("/topic/list."+listId,WsEvent.assignmentChanged());
+        ws.convertAndSend("/topic/global",
+                WsGlobalEvent.assignmentChanged(listId.toString(), deletedBy));
     }
 }

@@ -1,6 +1,7 @@
 package com.iachak.listprocessing.service;
 
 import com.iachak.listprocessing.dto.RowDTO;
+import com.iachak.listprocessing.dto.WsGlobalEvent;
 import com.iachak.listprocessing.entity.ListColumn;
 import com.iachak.listprocessing.entity.ListEntity;
 import com.iachak.listprocessing.entity.ListRow;
@@ -10,6 +11,7 @@ import com.iachak.listprocessing.repository.ListRowRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +25,7 @@ import java.util.*;
 public class ExcelService {
     private final ListRepository listRepo;
     private final ListRowRepository rowRepo;
+    private final SimpMessagingTemplate ws;
 
     @Transactional
     public ListEntity importExcel(MultipartFile file, String name, User uploader) throws IOException {
@@ -75,6 +78,8 @@ public class ExcelService {
             }
             if (!rows.isEmpty()) rowRepo.saveAll(rows);
         }
+        ws.convertAndSend("/topic/global",
+                WsGlobalEvent.listAdded(list.getId().toString(), uploader.getUsername()));
         return list;
     }
 

@@ -17,8 +17,8 @@ public record WsEvent(
     public static WsEvent cellUpdated(UUID rowId,int idx,String col,Object val,String by){
         return new WsEvent("CELL_UPDATED",rowId,idx,col,val,null,by,LocalDateTime.now());
     }
-    public static WsEvent rowAdded(UUID rowId,int idx,Map<String,Object> data,String by){
-        return new WsEvent("ROW_ADDED",rowId,idx,null,null,data,by,LocalDateTime.now());
+    public static WsEvent rowAdded(UUID rowId, int idx, Map<String,Object> data, String by){
+        return new WsEvent("ROW_ADDED",rowId,idx,null,null,data,by, LocalDateTime.now());
     }
     public static WsEvent rowDeleted(UUID rowId,int idx,String by){
         return new WsEvent("ROW_DELETED",rowId,idx,null,null,null,by,LocalDateTime.now());

@@ -67,8 +67,9 @@ public class ListController {
 
     @DeleteMapping("/{listId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteList(@PathVariable UUID listId) {
-        listService.deleteList(listId);
+    public ResponseEntity<Void> deleteList(@PathVariable UUID listId, @AuthenticationPrincipal UserDetails ud) {
+        User user = ((AppUserDetails) ud).getUser();
+        listService.deleteList(listId, user.getUsername());
         return ResponseEntity.noContent().build();
     }
 

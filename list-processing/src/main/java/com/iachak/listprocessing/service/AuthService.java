@@ -3,6 +3,7 @@ package com.iachak.listprocessing.service;
 import com.iachak.listprocessing.dto.AuthRequest;
 import com.iachak.listprocessing.dto.AuthResponse;
 import com.iachak.listprocessing.dto.RegisterRequest;
+import com.iachak.listprocessing.dto.WsGlobalEvent;
 import com.iachak.listprocessing.entity.Role;
 import com.iachak.listprocessing.entity.User;
 import com.iachak.listprocessing.repository.UserRepository;
@@ -10,6 +11,7 @@ import com.iachak.listprocessing.security.AppUserDetails;
 import com.iachak.listprocessing.security.AppUserDetailsService;
 import com.iachak.listprocessing.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +28,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authManager;
     private final AppUserDetailsService userDetailsService;
+    private final SimpMessagingTemplate ws;
 
     public AuthResponse login(AuthRequest req) {
         authManager.authenticate(
@@ -51,6 +54,8 @@ public class AuthService {
         u.setPassword(encoder.encode(req.password()));
         u.setRoles(Set.of(Role.USER));
         userRepo.save(u);
+        ws.convertAndSend("/topic/global",
+                WsGlobalEvent.userRegistered(req.username()));
         return login(new AuthRequest(req.username(), req.password()));
     }
 }

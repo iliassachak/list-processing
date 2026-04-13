@@ -28,6 +28,8 @@ export class ListView implements OnInit, OnDestroy {
   private wsSvc = inject(WsService);
   private toast = inject(ToastService);
 
+  private globalSub?: Subscription;
+
   listId!: string;
   meta = signal<ListMeta | null>(null);
   rows = signal<Row[]>([]);
@@ -61,6 +63,17 @@ export class ListView implements OnInit, OnDestroy {
     this.listId = this.route.snapshot.paramMap.get('id')!;
     this.load();
     if (this.auth.isAdmin) this.loadUsers();
+
+    this.globalSub = this.wsSvc.subscribeGlobal().subscribe((evt: any) => {
+      if (evt.type === 'PERMISSION_CHANGED' && evt.listId === this.listId) {
+        // Recharger uniquement les colonnes éditables (pas toute la liste)
+        this.listSvc.getEditableCols(this.listId).subscribe(cols => {
+          this.editableCols = new Set(cols);
+          this.buildColDefs(this.meta()!.columns); // reconstruire les ColDef
+          this.toast.show('Permissions mises à jour', 'info');
+        });
+      }
+    });
   }
 
   load() {
@@ -269,6 +282,7 @@ export class ListView implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.wsSub?.unsubscribe();
+    this.globalSub?.unsubscribe();
     this.wsSvc.disconnect();
   }
 
