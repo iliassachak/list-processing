@@ -163,8 +163,8 @@ export class ListView implements OnInit, OnDestroy {
 
   connectWs() {
     this.wsSvc.connect();
-    this.wsConnected.set(true);
     this.wsSub = this.wsSvc.subscribeList(this.listId).subscribe((evt: WsEvent) => {
+      this.wsConnected.set(true);
       this.handleWsEvent(evt);
     });
 
