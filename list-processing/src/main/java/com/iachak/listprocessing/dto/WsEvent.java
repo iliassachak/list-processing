@@ -23,7 +23,4 @@ public record WsEvent(
     public static WsEvent rowDeleted(UUID rowId,int idx,String by){
         return new WsEvent("ROW_DELETED",rowId,idx,null,null,null,by,LocalDateTime.now());
     }
-    public static WsEvent assignmentChanged(){
-        return new WsEvent("ASSIGNMENT_CHANGED",null,null,null,null,null,null,LocalDateTime.now());
-    }
 }

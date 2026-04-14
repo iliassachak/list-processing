@@ -55,3 +55,11 @@ export interface WsEvent {
   by: string;
   at: string;
 }
+
+export interface WsGlobalEvent {
+  type: 'LIST_ADDED' | 'LIST_DELETED' | 'ASSIGNMENT_CHANGED' | 'USER_REGISTERED' | 'PERMISSION_CHANGED';
+  listId: string;
+  by: string;
+  at: string;
+  editableCols: string[];
+}

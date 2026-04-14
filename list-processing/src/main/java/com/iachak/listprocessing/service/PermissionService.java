@@ -12,6 +12,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -26,7 +27,10 @@ public class PermissionService {
     public void set(UUID listId, String colName, UUID userId, boolean canEdit, boolean canView) {
         ListEntity list = listRepo.findById(listId).orElseThrow();
         User user = userRepo.findById(userId).orElseThrow();
+
         permRepo.deleteByKey(listId, userId, colName);
+        permRepo.flush();
+
         if (canEdit || canView) {
             ColumnPermission p = new ColumnPermission();
             p.setList(list);
@@ -35,8 +39,16 @@ public class PermissionService {
             p.setCanEdit(canEdit);
             p.setCanView(canView);
             permRepo.save(p);
+            permRepo.flush();
         }
+
+        List<String> editableCols = permRepo.findByListIdAndUserId(listId, userId)
+                .stream()
+                .filter(ColumnPermission::isCanEdit)
+                .map(ColumnPermission::getColumnName)
+                .toList();
+
         ws.convertAndSend("/topic/global",
-                WsGlobalEvent.permissionChanged(listId.toString(), user.getUsername()));
+                WsGlobalEvent.permissionChanged(listId.toString(), user.getUsername(), editableCols));
     }
 }

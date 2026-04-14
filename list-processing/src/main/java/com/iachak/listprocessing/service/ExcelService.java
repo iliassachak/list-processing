@@ -14,6 +14,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -78,8 +80,13 @@ public class ExcelService {
             }
             if (!rows.isEmpty()) rowRepo.saveAll(rows);
         }
-        ws.convertAndSend("/topic/global",
-                WsGlobalEvent.listAdded(list.getId().toString(), uploader.getUsername()));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                ws.convertAndSend("/topic/global",
+                        WsGlobalEvent.listAdded(list.getId().toString(), uploader.getUsername()));
+            }
+        });
         return list;
     }
 

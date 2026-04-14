@@ -4,12 +4,11 @@ import {ActivatedRoute, RouterLink} from '@angular/router';
 import {ListService} from '../../../core/services/list.service';
 import {WsService} from '../../../core/services/ws.service';
 import {ToastService} from '../../../core/services/toast.service';
-import {Column, ListMeta, Row, WsEvent} from '../../../core/models/models';
+import {Column, ListMeta, Row, WsEvent, WsGlobalEvent} from '../../../core/models/models';
 import {CellValueChangedEvent, ColDef, GetRowIdFunc, GetRowIdParams, GridApi, GridReadyEvent} from 'ag-grid-community';
-import {Subscription} from 'rxjs';
+import {firstValueFrom, Subscription} from 'rxjs';
 import {AgGridAngular} from 'ag-grid-angular';
 import {FormsModule} from '@angular/forms';
-import {style} from '@angular/animations';
 
 @Component({
   selector: 'app-list-view',
@@ -63,34 +62,30 @@ export class ListView implements OnInit, OnDestroy {
     this.listId = this.route.snapshot.paramMap.get('id')!;
     this.load();
     if (this.auth.isAdmin) this.loadUsers();
-
-    this.globalSub = this.wsSvc.subscribeGlobal().subscribe((evt: any) => {
-      if (evt.type === 'PERMISSION_CHANGED' && evt.listId === this.listId) {
-        // Recharger uniquement les colonnes éditables (pas toute la liste)
-        this.listSvc.getEditableCols(this.listId).subscribe(cols => {
-          this.editableCols = new Set(cols);
-          this.buildColDefs(this.meta()!.columns); // reconstruire les ColDef
-          this.toast.show('Permissions mises à jour', 'info');
-        });
-      }
-    });
   }
 
-  load() {
+  async load() {
     this.loading.set(true);
-    Promise.all([
-      this.listSvc.getList(this.listId).toPromise(),
-      this.listSvc.getRows(this.listId).toPromise(),
-      this.listSvc.getEditableCols(this.listId).toPromise(),
-    ]).then(([meta, rows, editCols]) => {
+
+    try {
+      const [meta, rows, editCols] = await Promise.all([
+        firstValueFrom(this.listSvc.getList(this.listId)),
+        firstValueFrom(this.listSvc.getRows(this.listId)),
+        firstValueFrom(this.listSvc.getEditableCols(this.listId)),
+      ]);
+
       this.meta.set(meta!);
       this.rows.set(rows!);
       this.editableCols = new Set(editCols ?? []);
       this.buildColDefs(meta!.columns);
       this.applyFilterMap();
-      this.loading.set(false);
       this.connectWs();
-    }).catch(() => this.loading.set(false));
+
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   loadUsers() {
@@ -202,10 +197,15 @@ export class ListView implements OnInit, OnDestroy {
 
   connectWs() {
     this.wsSvc.connect();
+    this.wsConnected.set(true);
     this.wsSub = this.wsSvc.subscribeList(this.listId).subscribe((evt: WsEvent) => {
-      this.wsConnected.set(true);
       this.handleWsEvent(evt);
     });
+
+    this.globalSub = this.wsSvc.subscribeGlobal().subscribe((evt: any) => {
+      this.handleWsGlobalEvent(evt);
+    });
+
   }
 
   handleWsEvent(evt: WsEvent) {
@@ -233,6 +233,18 @@ export class ListView implements OnInit, OnDestroy {
       this.applyFilterMap();
     } else if (evt.type === 'ASSIGNMENT_CHANGED' && !this.auth.isAdmin) {
       this.load();
+    }
+  }
+
+  handleWsGlobalEvent(evt: WsGlobalEvent) {
+    if (evt.type === 'PERMISSION_CHANGED' && evt.listId === this.listId) {
+      console.log(evt.editableCols);
+      this.editableCols = new Set(evt.editableCols ?? []);
+      this.buildColDefs(this.meta()!.columns);
+      this.gridApi?.stopEditing();
+      this.gridApi?.refreshCells({ force: true });
+      this.gridApi?.redrawRows();
+      this.toast.show('Permissions mises à jour', 'info');
     }
   }
 
@@ -286,6 +298,5 @@ export class ListView implements OnInit, OnDestroy {
     this.wsSvc.disconnect();
   }
 
-  protected readonly HTMLElement = HTMLElement;
-  protected readonly style = style;
+
 }

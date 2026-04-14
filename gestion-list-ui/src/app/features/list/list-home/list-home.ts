@@ -44,14 +44,11 @@ export class ListHome implements OnInit, OnDestroy {
     this.wsSvc.connect();
     this.wsSub = this.wsSvc.subscribeGlobal().subscribe((evt: any) => {
       if (evt.type === 'LIST_ADDED') {
-        // Si C'EST cet onglet qui uploade → ignorer, le handler HTTP s'en charge
-        if (this.uploading) return;
-        // Sinon c'est un autre admin → recharger
-        this.load();
-
+        this.listSvc.getList(evt.listId).subscribe(list => {
+          this.lists.update(l => [...l, list]);
+        });
       } else if (evt.type === 'LIST_DELETED') {
         this.lists.update(ls => ls.filter(l => l.id !== evt.listId));
-
       } else if (evt.type === 'ASSIGNMENT_CHANGED') {
         this.load();
       }
@@ -68,7 +65,6 @@ export class ListHome implements OnInit, OnDestroy {
     this.listSvc.getLists().subscribe({
       next: l => {
         this.lists.set(l);
-        console.log(l);
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
