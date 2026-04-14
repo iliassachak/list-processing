@@ -93,42 +93,8 @@ export class ListView implements OnInit, OnDestroy {
   }
 
   buildColDefs(cols: Column[]) {
-    const defs: ColDef[] = [];
-
-    if (this.auth.isAdmin) {
-      defs.push({
-        field: '_actions', headerName: '', width: 60, sortable: false, resizable: false,
-        cellRenderer: (p: any) => {
-          const btn = document.createElement('button');
-          btn.innerHTML = '🗑️';
-          btn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:14px;padding:2px';
-          btn.title = 'Supprimer';
-          btn.addEventListener('click', () => this.deleteRow(p.data.id));
-          return btn;
-        }
-      });
-    }
-
-    cols.forEach(col => {
-      const isEditable = this.editableCols.has(col.name);
-      defs.push({
-        field: `data.${col.name}`,
-        headerName: col.name,
-        editable: isEditable,
-        cellStyle: isEditable ? {backgroundColor: '#f0f9ff', cursor: 'pointer'} : {},
-        filter: false,
-        headerComponent: 'agColumnHeader',
-        headerComponentParams: {
-          template: `<div style="display:flex;align-items:center;gap:4px;width:100%">
-            <span style="flex:1">${col.name}</span>
-            <span style="cursor:pointer;color:#4f46e5;font-size:11px" data-filter="1">🔍</span>
-          </div>`
-        },
-      });
-    });
+    const defs = this.buildColDefsRaw(cols);
     this.colDefs.set(defs);
-
-    // After grid is ready, attach filter button listeners
     setTimeout(() => this.attachFilterButtons(cols), 300);
   }
 
@@ -223,29 +189,74 @@ export class ListView implements OnInit, OnDestroy {
         lastModifiedAt: evt.at,
         lastModifiedBy: evt.by
       };
-      if (this.auth.isAdmin) {
+
         this.rows.update(r => [...r, newRow]);
         this.applyFilterMap();
-      }
+
       this.toast.show(`Nouvelle ligne ajoutée par ${evt.by}`, 'info');
     } else if (evt.type === 'ROW_DELETED') {
       this.rows.update(r => r.filter(x => x.id !== evt.rowId));
       this.applyFilterMap();
-    } else if (evt.type === 'ASSIGNMENT_CHANGED' && !this.auth.isAdmin) {
+    } else if (evt.type === 'ASSIGNMENT_CHANGED') {
       this.load();
     }
   }
 
   handleWsGlobalEvent(evt: WsGlobalEvent) {
     if (evt.type === 'PERMISSION_CHANGED' && evt.listId === this.listId) {
-      console.log(evt.editableCols);
+
       this.editableCols = new Set(evt.editableCols ?? []);
-      this.buildColDefs(this.meta()!.columns);
+
+      // Reconstruire les defs
+      const newDefs = this.buildColDefsRaw(this.meta()!.columns);
+
+      // Forcer ag-Grid à prendre les nouvelles colDefs
+      this.gridApi?.setGridOption('columnDefs', []);
+      this.gridApi?.setGridOption('columnDefs', newDefs);
+      this.colDefs.set(newDefs);
+
       this.gridApi?.stopEditing();
-      this.gridApi?.refreshCells({ force: true });
-      this.gridApi?.redrawRows();
       this.toast.show('Permissions mises à jour', 'info');
+    } else if (evt.type === 'ASSIGNMENT_CHANGED') {
+      this.load();
     }
+  }
+
+  buildColDefsRaw(cols: Column[]): ColDef[] {
+    const defs: ColDef[] = [];
+
+    if (this.auth.isAdmin) {
+      defs.push({
+        field: '_actions', headerName: '', width: 60, sortable: false, resizable: false,
+        cellRenderer: (p: any) => {
+          const btn = document.createElement('button');
+          btn.innerHTML = '🗑️';
+          btn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:14px;padding:2px';
+          btn.title = 'Supprimer';
+          btn.addEventListener('click', () => this.deleteRow(p.data.id));
+          return btn;
+        }
+      });
+    }
+
+    cols.forEach(col => {
+      const isEditable = this.editableCols.has(col.name);
+      defs.push({
+        field: `data.${col.name}`,
+        headerName: col.name,
+        editable: isEditable,
+        cellStyle: isEditable ? {backgroundColor: '#f0f9ff', cursor: 'pointer'} : {},
+        filter: false,
+        headerComponentParams: {
+          template: `<div style="display:flex;align-items:center;gap:4px;width:100%">
+          <span style="flex:1">${col.name}</span>
+          <span style="cursor:pointer;color:#4f46e5;font-size:11px" data-filter="1">🔍</span>
+        </div>`
+        },
+      });
+    });
+
+    return defs;
   }
 
   deleteRow(rowId: string) {
