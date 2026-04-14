@@ -52,6 +52,7 @@ public class AuthService {
         u.setUsername(req.username());
         u.setEmail(req.email());
         u.setPassword(encoder.encode(req.password()));
+        u.setEnabled(true);
         u.setRoles(Set.of(Role.USER));
         userRepo.save(u);
         ws.convertAndSend("/topic/global",

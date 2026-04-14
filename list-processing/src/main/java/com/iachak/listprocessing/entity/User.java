@@ -28,6 +28,8 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    private boolean enabled;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))

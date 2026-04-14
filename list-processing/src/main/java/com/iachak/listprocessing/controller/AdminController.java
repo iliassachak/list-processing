@@ -33,7 +33,11 @@ public class AdminController {
 
     @GetMapping("/users")
     public ResponseEntity<List<UserDTO>> users(){
-        return ResponseEntity.ok(userRepo.findAll().stream().map(UserDTO::from).toList());
+        return ResponseEntity.ok(userRepo.findAll()
+                .stream()
+                .filter(User::isEnabled)
+                .map(UserDTO::from)
+                .toList());
     }
 
     @GetMapping("/lists/{listId}/assignments")

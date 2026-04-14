@@ -7,6 +7,7 @@ import com.iachak.listprocessing.entity.User;
 import com.iachak.listprocessing.repository.ColumnPermissionRepository;
 import com.iachak.listprocessing.repository.ListRepository;
 import com.iachak.listprocessing.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class PermissionService {
     private final ListRepository listRepo;
     private final UserRepository userRepo;
     private final SimpMessagingTemplate ws;
+    private final EntityManager em;
 
     public void set(UUID listId, String colName, UUID userId, boolean canEdit, boolean canView) {
         ListEntity list = listRepo.findById(listId).orElseThrow();
@@ -30,6 +32,7 @@ public class PermissionService {
 
         permRepo.deleteByKey(listId, userId, colName);
         permRepo.flush();
+        em.clear();
 
         if (canEdit || canView) {
             ColumnPermission p = new ColumnPermission();
@@ -40,6 +43,7 @@ public class PermissionService {
             p.setCanView(canView);
             permRepo.save(p);
             permRepo.flush();
+            em.clear();
         }
 
         List<String> editableCols = permRepo.findByListIdAndUserId(listId, userId)
