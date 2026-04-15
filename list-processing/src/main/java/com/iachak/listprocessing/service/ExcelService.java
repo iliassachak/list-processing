@@ -70,7 +70,7 @@ public class ExcelService {
                 }
                 ListRow lr = new ListRow();
                 lr.setList(list);
-                lr.setRowIndex(i - 1);
+                lr.setRowIndex(i);
                 lr.setData(data);
                 rows.add(lr);
                 if (rows.size() == 500) {

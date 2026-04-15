@@ -227,7 +227,10 @@ export class ListView implements OnInit, OnDestroy {
 
     if (this.auth.isAdmin) {
       defs.push({
-        field: '_actions', headerName: '', width: 60, sortable: false, resizable: false,
+        field: '_actions', headerName: '',
+        width: 10,
+        sortable: false,
+        resizable: false,
         cellRenderer: (p: any) => {
           const btn = document.createElement('button');
           btn.innerHTML = '🗑️';
@@ -238,6 +241,19 @@ export class ListView implements OnInit, OnDestroy {
         }
       });
     }
+
+    defs.push({
+      field: 'rowIndex',
+      headerName: '#',
+      width: 80,
+      sortable: true,
+      editable: false,
+      cellStyle: {
+        backgroundColor: '#f9fafb',
+        fontWeight: '600',
+        textAlign: 'center'
+      }
+    });
 
     cols.forEach(col => {
       const isEditable = this.editableCols.has(col.name);
