@@ -148,7 +148,7 @@ public class ExcelService {
             }
 
             // ===== 4. Index de départ =====
-            int startIndex = (rowRepo.findMaxRowIndex(listId)) + 1;
+            int startIndex = rowRepo.findMaxRowIndex(listId);
 
             List<ListRow> rows = new ArrayList<>();
 

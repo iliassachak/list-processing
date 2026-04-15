@@ -14,7 +14,7 @@ body {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: 8px; font-size: 14px;
   font-weight: 500; cursor: pointer; border: none; transition: all .2s;
-  &-primary   { margin-top: 10px; background: #4f46e5; color: #fff; &:hover { background: #4338ca; } }
+  &-primary   { background: #4f46e5; color: #fff; &:hover { background: #4338ca; } }
   &-danger    { background: #ef4444; color: #fff; &:hover { background: #dc2626; } }
   &-success   { background: #10b981; color: #fff; &:hover { background: #059669; } }
   &-secondary { background: #e5e7eb; color: #374151; &:hover { background: #d1d5db; } }
@@ -28,6 +28,12 @@ body {
 .card {
   background: #fff; border-radius: 12px;
   box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 24px;
+  transition: transform .2s, box-shadow .2s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
 
 .badge {
