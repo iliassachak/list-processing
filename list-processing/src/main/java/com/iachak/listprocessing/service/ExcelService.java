@@ -170,7 +170,7 @@ public class ExcelService {
 
                 ListRow lr = new ListRow();
                 lr.setList(list);
-                lr.setRowIndex(startIndex + (i - 1));
+                lr.setRowIndex(startIndex + i);
                 lr.setData(data);
                 lr.setLastModifiedAt(LocalDateTime.now());
                 lr.setLastModifiedBy(uploader);
