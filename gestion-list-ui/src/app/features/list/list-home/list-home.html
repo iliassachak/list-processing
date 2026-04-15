@@ -38,6 +38,11 @@
               <span class="badge badge-gray">+{{ list.columns.length - 4 }}</span>
             }
           </div>
+          @if (auth.isAdmin) {
+            <a [routerLink]="['/lists/admin',list.id]" class="btn btn-primary" style="width:100%">
+              ⚙️ Gérer cette liste
+            </a>
+          }
         </div>
       }
       @if (!lists().length) {

@@ -92,6 +92,7 @@ public class ExcelService {
 
     @Transactional
     public ListEntity appendExcel(MultipartFile file, UUID listId, User uploader) throws IOException {
+
         ListEntity list = listRepo.findById(listId)
                 .orElseThrow(() -> new NoSuchElementException("List not found"));
 
@@ -102,39 +103,68 @@ public class ExcelService {
         }
 
         try (XSSFWorkbook wb = new XSSFWorkbook(file.getInputStream())) {
+
             Sheet sheet = wb.getSheetAt(0);
             Row header = sheet.getRow(0);
-            if (header == null) throw new IllegalArgumentException("Empty Excel file");
+            if (header == null) {
+                throw new IllegalArgumentException("Empty Excel file");
+            }
 
-            // Mapper les colonnes du fichier entrant → colonnes existantes (par nom)
+            // ===== 1. Lire les colonnes du fichier =====
+            Set<String> fileColumns = new LinkedHashSet<>();
+            for (Cell cell : header) {
+                String name = asString(cell);
+                if (name != null && !name.isBlank()) {
+                    fileColumns.add(name.trim());
+                }
+            }
+
+            // Colonnes attendues
+            Set<String> expectedColumns = new LinkedHashSet<>(colIndex.keySet());
+
+            // ===== 2. Validation stricte =====
+            if (!fileColumns.equals(expectedColumns)) {
+
+                Set<String> missing = new HashSet<>(expectedColumns);
+                missing.removeAll(fileColumns);
+
+                Set<String> extra = new HashSet<>(fileColumns);
+                extra.removeAll(expectedColumns);
+
+                throw new IllegalArgumentException(
+                        "Structure Excel invalide. " +
+                                (!missing.isEmpty() ? "Colonnes manquantes: " + missing + ". " : "") +
+                                (!extra.isEmpty() ? "Colonnes en trop: " + extra + "." : "")
+                );
+            }
+
+            // ===== 3. Mapper colonnes fichier → colonnes existantes =====
             Map<Integer, String> fileColToName = new LinkedHashMap<>();
             for (Cell cell : header) {
                 String name = asString(cell);
-                if (name != null && !name.isBlank() && colIndex.containsKey(name.trim())) {
+                if (name != null && !name.isBlank()) {
                     fileColToName.put(cell.getColumnIndex(), name.trim());
                 }
             }
 
-            if (fileColToName.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Aucune colonne du fichier ne correspond aux colonnes de la liste existante.");
-            }
-
-            // Trouver l'index de départ (suite des lignes existantes)
+            // ===== 4. Index de départ =====
             int startIndex = (rowRepo.findMaxRowIndex(listId)) + 1;
 
             List<ListRow> rows = new ArrayList<>();
+
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
+
                 Map<String, Object> data = new LinkedHashMap<>();
 
-                // Initialiser toutes les colonnes existantes à null
+                // Initialiser toutes les colonnes à null
                 for (String colName : colIndex.keySet()) {
                     data.put(colName, null);
                 }
+
                 // Remplir avec les valeurs du fichier
                 for (Map.Entry<Integer, String> entry : fileColToName.entrySet()) {
-                    Cell cell = row != null ? row.getCell(entry.getKey()) : null;
+                    Cell cell = (row != null) ? row.getCell(entry.getKey()) : null;
                     data.put(entry.getValue(), extractVal(cell));
                 }
 
@@ -144,21 +174,31 @@ public class ExcelService {
                 lr.setData(data);
                 lr.setLastModifiedAt(LocalDateTime.now());
                 lr.setLastModifiedBy(uploader);
+
                 rows.add(lr);
 
-                if (rows.size() == 500) { rowRepo.saveAll(rows); rows.clear(); }
+                // Batch insert
+                if (rows.size() == 500) {
+                    rowRepo.saveAll(rows);
+                    rows.clear();
+                }
             }
-            if (!rows.isEmpty()) rowRepo.saveAll(rows);
+
+            if (!rows.isEmpty()) {
+                rowRepo.saveAll(rows);
+            }
 
             listRepo.save(list);
         }
 
-        // Broadcast WebSocket
+        // ===== 5. WebSocket après commit =====
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                ws.convertAndSend("/topic/global",
-                        WsGlobalEvent.listAdded(list.getId().toString(), uploader.getUsername()));
+                ws.convertAndSend(
+                        "/topic/global",
+                        WsGlobalEvent.listAdded(list.getId().toString(), uploader.getUsername())
+                );
             }
         });
 

@@ -38,17 +38,12 @@ export const routes: Routes = [
             .then(m => m.ListView)
       },
       {
-        path: 'admin',
-        canActivate: [adminGuard],
-        loadComponent: () => import('./features/admin/admin/admin').then(m => m.Admin)
-      },
-      {
-        path: 'admin/lists/:id',
+        path: 'lists/admin/:id',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/admin-list/admin-list').then(m => m.AdminList)
       },
       {
-        path: 'admin/users',
+        path: 'users',
         canActivate: [adminGuard],
         loadComponent: () =>
           import('./features/admin/admin-users/admin-users')

@@ -109,15 +109,15 @@ export class ListHome implements OnInit, OnDestroy {
 
           if (this.uploadMode === 'new') {
             // Ajouter la nouvelle liste dans le signal
-            if (result) this.lists.update(ls => [...ls, result]);
+            //if (result) this.lists.update(ls => [...ls, result]);
             this.toast.show('Liste importée avec succès !', 'success');
           } else {
             // Mettre à jour le totalRows de la liste existante
-            if (result) {
+            /*if (result) {
               this.lists.update(ls =>
                 ls.map(l => l.id === result.id ? { ...l, totalRows: result.totalRows } : l)
               );
-            }
+            }*/
             this.toast.show('Lignes ajoutées avec succès !', 'success');
           }
 
