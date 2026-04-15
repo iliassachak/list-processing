@@ -2,7 +2,7 @@ import {Component, inject, OnDestroy, OnInit, signal} from '@angular/core';
 import {ActivatedRoute, RouterLink} from '@angular/router';
 import {ListService} from '../../../core/services/list.service';
 import {ToastService} from '../../../core/services/toast.service';
-import {Assignment, ListMeta} from '../../../core/models/models';
+import {Assignment, ListMeta, User} from '../../../core/models/models';
 import {FormsModule} from '@angular/forms';
 import {Subscription} from 'rxjs';
 import {WsService} from '../../../core/services/ws.service';
@@ -25,7 +25,7 @@ export class AdminList implements OnInit, OnDestroy {
   listId!: string;
   meta = signal<ListMeta | null>(null);
   assignments = signal<Assignment[]>([]);
-  users = signal<any[]>([]);
+  users = signal<User[]>([]);
   permissions = signal<Record<string, Record<string, boolean>>>({});
 
   private wsSub?: Subscription;

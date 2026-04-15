@@ -10,6 +10,7 @@ public record UserDTO(
         UUID id,
         String username,
         String email,
+        boolean enabled,
         Set<String> roles
 ) {
     public static UserDTO from(User u){
@@ -17,6 +18,7 @@ public record UserDTO(
                 u.getId(),
                 u.getUsername(),
                 u.getEmail(),
+                u.isEnabled(),
                 u.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));
     }
 }

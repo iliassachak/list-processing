@@ -43,6 +43,16 @@ export class ListService {
     return this.http.request<any>(req);
   }
 
+  appendToList(listId: string, file: File) {
+    const form = new FormData();
+    form.append('file', file);
+    const req = new HttpRequest('POST', `${API}/lists/${listId}/append`, form, {
+      reportProgress: true,
+      observe: 'events' as const,
+    } as any);
+    return this.http.request<any>(req);
+  }
+
   updateCell(listId: string, rowId: string, columnName: string, value: any) {
     return this.http.patch<Row>(`${API}/lists/${listId}/rows/${rowId}/cell`, {columnName, value});
   }
@@ -86,5 +96,21 @@ export class ListService {
 
   setPermission(listId: string, col: string, userId: string, canEdit: boolean, canView: boolean) {
     return this.http.post(`${API}/admin/lists/${listId}/permissions/${col}`, {userId, canEdit, canView});
+  }
+
+  getAllUsers() {
+    return this.http.get<any[]>(`${API}/admin/users/users`);
+  }
+
+  setUserEnabled(userId: string, enabled: boolean) {
+    return this.http.patch<any>(`${API}/admin/users/${userId}/enabled`, { enabled });
+  }
+
+  setUserAdminRole(userId: string, admin: boolean) {
+    return this.http.patch<any>(`${API}/admin/users/${userId}/role-admin`, { admin });
+  }
+
+  changeUserPassword(userId: string, password: string) {
+    return this.http.patch<void>(`${API}/admin/users/${userId}/password`, { password });
   }
 }

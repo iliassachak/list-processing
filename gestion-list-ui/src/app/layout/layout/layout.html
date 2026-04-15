@@ -1,14 +1,15 @@
 <div class="layout">
   <nav class="sidebar">
-    <div class="logo">📋 ListPro</div>
+    <div class="logo">📋 Gestion Listes</div>
     <a routerLink="/lists" routerLinkActive="active"><span class="icon">📄</span>Mes listes</a>
     @if (auth.isAdmin) {
       <a routerLink="/admin" routerLinkActive="active"><span class="icon">⚙️</span>Administration</a>
+      <a routerLink="/admin/users" routerLinkActive="active"><span class="icon">👥</span>Utilisateurs</a>
     }
   </nav>
   <div style="flex:1;display:flex;flex-direction:column">
     <div class="topbar">
-      <span style="font-weight:600;color:#4f46e5">List Processing</span>
+      <span style="font-weight:600;color:#4f46e5">Gestion des Listes</span>
       <div class="user-info">
         <div class="avatar">{{initial}}</div>
         <span>{{auth.currentUser()?.username}}</span>

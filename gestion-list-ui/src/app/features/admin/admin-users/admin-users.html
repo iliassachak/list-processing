@@ -1,0 +1,173 @@
+<div class="page">
+  <div class="page-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <a routerLink="/admin" class="btn btn-secondary btn-sm">← Admin</a>
+      <h1 class="page-title">👥 Gestion des utilisateurs</h1>
+    </div>
+    <span class="badge badge-blue">{{ users().length }} utilisateurs</span>
+  </div>
+
+  <!-- Search -->
+  <div style="margin-bottom:16px">
+    <input class="form-control"
+           [ngModel]="search()"
+           (ngModelChange)="search.set($event)"
+           placeholder="🔍 Rechercher par nom ou email..."
+           style="max-width:360px">
+  </div>
+
+  @if (loading()) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+      <span>Chargement...</span></div>
+  } @else {
+    <div class="card" style="padding:0;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead>
+        <tr style="background:#f9fafb;border-bottom:2px solid #e5e7eb">
+          <th style="padding:14px 16px;text-align:left;font-weight:600">Utilisateur</th>
+          <th style="padding:14px 16px;text-align:left;font-weight:600">Email</th>
+          <th style="padding:14px 16px;text-align:center;font-weight:600">Rôles</th>
+          <th style="padding:14px 16px;text-align:center;font-weight:600">Statut</th>
+          <th style="padding:14px 16px;text-align:center;font-weight:600">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+          @for (user of filtered(); track user.id) {
+            <tr style="border-bottom:1px solid #f3f4f6"
+                [style.opacity]="user.enabled ? '1' : '0.55'">
+
+              <!-- Utilisateur -->
+              <td style="padding:14px 16px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="width:36px;height:36px;border-radius:50%;
+                                  display:flex;align-items:center;justify-content:center;
+                                  font-weight:700;font-size:14px;color:#fff;flex-shrink:0"
+                       [style.background]="user.enabled ? '#4f46e5' : '#9ca3af'">
+                    {{ user.username[0].toUpperCase() }}
+                  </div>
+                  <div>
+                    <div style="font-weight:500">{{ user.username }}</div>
+                    @if (user.username === 'admin') {
+                      <span style="font-size:11px;color:#9ca3af">Compte protégé</span>
+                    }
+                  </div>
+                </div>
+              </td>
+
+              <!-- Email -->
+              <td style="padding:14px 16px;color:#6b7280">{{ user.email }}</td>
+
+              <!-- Rôles -->
+              <td style="padding:14px 16px;text-align:center">
+                <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+                  @for (role of user.roles; track role) {
+                    <span class="badge" [class]="role === 'ADMIN' ? 'badge-blue' : 'badge-green'">
+                          {{ role }}
+                        </span>
+                  }
+                </div>
+              </td>
+
+              <!-- Statut -->
+              <td style="padding:14px 16px;text-align:center">
+                    <span class="badge" [class]="user.enabled ? 'badge-green' : 'badge-red'">
+                      {{ user.enabled ? '✓ Actif' : '✗ Désactivé' }}
+                    </span>
+              </td>
+
+              <!-- Actions -->
+              <td style="padding:14px 16px">
+                <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+
+                  <!-- Toggle enabled -->
+                  @if (user.username !== 'admin' && user.id !== currentUserId) {
+                    <button class="btn btn-sm"
+                            [class]="user.enabled ? 'btn-secondary' : 'btn-success'"
+                            [disabled]="pending[user.id]"
+                            (click)="toggleEnabled(user)"
+                            [title]="user.enabled ? 'Désactiver' : 'Activer'">
+                      {{ user.enabled ? '🔒 Désactiver' : '🔓 Activer' }}
+                    </button>
+                  }
+
+                  <!-- Toggle admin role -->
+                  @if (user.username !== 'admin' && user.id !== currentUserId) {
+                    <button class="btn btn-sm"
+                            [class]="user.roles.includes('ADMIN') ? 'btn-secondary' : 'btn-outline'"
+                            [disabled]="pending[user.id]"
+                            (click)="toggleAdmin(user)"
+                            [title]="user.roles.includes('ADMIN') ? 'Retirer rôle Admin' : 'Donner rôle Admin'">
+                      {{ user.roles.includes('ADMIN') ? '👑 Retirer Admin' : '👑 Donner Admin' }}
+                    </button>
+                  }
+
+                  <!-- Change password -->
+                  <button class="btn btn-sm btn-secondary"
+                          [disabled]="pending[user.id]"
+                          (click)="openPwdModal(user)"
+                          title="Changer le mot de passe">
+                    🔑 Mot de passe
+                  </button>
+
+                </div>
+              </td>
+            </tr>
+          }
+          @if (!filtered().length) {
+            <tr>
+              <td colspan="5" style="text-align:center;padding:48px;color:#6b7280">
+                Aucun utilisateur trouvé.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- Password modal -->
+@if (pwdModal.show) {
+  <div class="modal-overlay" (click)="pwdModal.show=false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <span class="modal__title">🔑 Changer le mot de passe</span>
+        <button class="btn btn-secondary btn-sm" (click)="pwdModal.show=false">✕</button>
+      </div>
+
+      <p style="color:#6b7280;font-size:14px;margin-bottom:20px">
+        Utilisateur : <strong>{{ pwdModal.username }}</strong>
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Nouveau mot de passe</label>
+        <div style="position:relative">
+          <input class="form-control" [(ngModel)]="pwdModal.value"
+                 [type]="pwdModal.show_pwd ? 'text' : 'password'"
+                 placeholder="Min. 6 caractères"
+                 (keyup.enter)="submitPassword()">
+          <button type="button" (click)="pwdModal.show_pwd=!pwdModal.show_pwd"
+                  style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                             background:none;border:none;cursor:pointer;font-size:16px">
+            {{ pwdModal.show_pwd ? '🙈' : '👁️' }}
+          </button>
+        </div>
+        @if (pwdModal.value && pwdModal.value.length < 6) {
+          <div style="color:#ef4444;font-size:12px;margin-top:4px">
+            Minimum 6 caractères requis.
+          </div>
+        }
+      </div>
+
+      <div class="modal__footer">
+        <button class="btn btn-secondary" (click)="pwdModal.show=false">Annuler</button>
+        <button class="btn btn-primary"
+                [disabled]="!pwdModal.value || pwdModal.value.length < 6 || pwdModal.saving"
+                (click)="submitPassword()">
+          {{ pwdModal.saving ? 'Enregistrement...' : 'Enregistrer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

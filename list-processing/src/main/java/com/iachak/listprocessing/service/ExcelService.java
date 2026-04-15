@@ -90,6 +90,81 @@ public class ExcelService {
         return list;
     }
 
+    @Transactional
+    public ListEntity appendExcel(MultipartFile file, UUID listId, User uploader) throws IOException {
+        ListEntity list = listRepo.findById(listId)
+                .orElseThrow(() -> new NoSuchElementException("List not found"));
+
+        // Index des colonnes existantes (nom → index)
+        Map<String, Integer> colIndex = new LinkedHashMap<>();
+        for (ListColumn col : list.getColumns()) {
+            colIndex.put(col.getColumnName(), col.getColumnIndex());
+        }
+
+        try (XSSFWorkbook wb = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = wb.getSheetAt(0);
+            Row header = sheet.getRow(0);
+            if (header == null) throw new IllegalArgumentException("Empty Excel file");
+
+            // Mapper les colonnes du fichier entrant → colonnes existantes (par nom)
+            Map<Integer, String> fileColToName = new LinkedHashMap<>();
+            for (Cell cell : header) {
+                String name = asString(cell);
+                if (name != null && !name.isBlank() && colIndex.containsKey(name.trim())) {
+                    fileColToName.put(cell.getColumnIndex(), name.trim());
+                }
+            }
+
+            if (fileColToName.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Aucune colonne du fichier ne correspond aux colonnes de la liste existante.");
+            }
+
+            // Trouver l'index de départ (suite des lignes existantes)
+            int startIndex = (rowRepo.findMaxRowIndex(listId)) + 1;
+
+            List<ListRow> rows = new ArrayList<>();
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                Map<String, Object> data = new LinkedHashMap<>();
+
+                // Initialiser toutes les colonnes existantes à null
+                for (String colName : colIndex.keySet()) {
+                    data.put(colName, null);
+                }
+                // Remplir avec les valeurs du fichier
+                for (Map.Entry<Integer, String> entry : fileColToName.entrySet()) {
+                    Cell cell = row != null ? row.getCell(entry.getKey()) : null;
+                    data.put(entry.getValue(), extractVal(cell));
+                }
+
+                ListRow lr = new ListRow();
+                lr.setList(list);
+                lr.setRowIndex(startIndex + (i - 1));
+                lr.setData(data);
+                lr.setLastModifiedAt(LocalDateTime.now());
+                lr.setLastModifiedBy(uploader);
+                rows.add(lr);
+
+                if (rows.size() == 500) { rowRepo.saveAll(rows); rows.clear(); }
+            }
+            if (!rows.isEmpty()) rowRepo.saveAll(rows);
+
+            listRepo.save(list);
+        }
+
+        // Broadcast WebSocket
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                ws.convertAndSend("/topic/global",
+                        WsGlobalEvent.listAdded(list.getId().toString(), uploader.getUsername()));
+            }
+        });
+
+        return list;
+    }
+
     public byte[] exportFromDTOs(ListEntity list, List<RowDTO> rows) throws IOException {
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet(list.getName());

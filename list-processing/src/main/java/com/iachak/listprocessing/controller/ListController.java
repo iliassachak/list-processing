@@ -1,6 +1,7 @@
 package com.iachak.listprocessing.controller;
 
 import com.iachak.listprocessing.dto.*;
+import com.iachak.listprocessing.entity.ListEntity;
 import com.iachak.listprocessing.entity.User;
 import com.iachak.listprocessing.security.AppUserDetails;
 import com.iachak.listprocessing.service.ExcelService;
@@ -42,6 +43,17 @@ public class ListController {
                                           @AuthenticationPrincipal UserDetails ud) throws IOException {
         User user = ((AppUserDetails) ud).getUser();
         return ResponseEntity.ok(ListDTO.from(excelService.importExcel(file, name, user)));
+    }
+
+    @PostMapping(value = "/{listId}/append", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ListDTO> appendToList(
+            @PathVariable UUID listId,
+            @RequestParam MultipartFile file,
+            @AuthenticationPrincipal UserDetails ud) throws IOException {
+        User user = ((AppUserDetails) ud).getUser();
+        ListEntity updated = excelService.appendExcel(file, listId, user);
+        return ResponseEntity.ok(ListDTO.from(updated));
     }
 
     @GetMapping("/{listId}/rows")
