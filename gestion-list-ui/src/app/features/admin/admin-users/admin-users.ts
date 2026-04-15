@@ -5,13 +5,12 @@ import {ToastService} from '../../../core/services/toast.service';
 import {User} from '../../../core/models/models';
 import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
-import { RouterLink } from "@angular/router";
 import {WsService} from '../../../core/services/ws.service';
 import {Subscription} from 'rxjs';
 
 @Component({
   selector: 'app-admin-users',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './admin-users.html',
   styleUrl: './admin-users.scss',
 })
