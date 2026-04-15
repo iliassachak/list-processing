@@ -27,11 +27,9 @@ export class Admin implements OnInit, OnDestroy {
     this.wsSvc.connect();
     this.wsSub = this.wsSvc.subscribeGlobal().subscribe((evt: any) => {
       if (evt.type === 'LIST_ADDED') {
-        this.listSvc.getList(evt.listId).subscribe(list => {
-          this.lists.update(l => [...l, list]);
-        });
+        this.listSvc.getLists().subscribe(l => this.lists.set(l));
       } else if (evt.type === 'LIST_DELETED') {
-        this.lists.update(ls => ls.filter(l => l.id !== evt.listId));
+        this.listSvc.getLists().subscribe(l => this.lists.set(l));
       }
     });
   }

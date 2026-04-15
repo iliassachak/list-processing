@@ -29,13 +29,18 @@ export class ListHome implements OnInit, OnDestroy {
   lists = signal<ListMeta[]>([]);
   loading = signal(true);
   showUpload = false;
-  uploadName = '';
-  selectedFile: File | null = null;
-  uploading = false;
-  uploadProgress = 0;          // 0-100
-  uploadPhase: 'uploading' | 'processing' | 'done' | '' = '';
+
   deletingListId: string | null = null;
   deletingListName = '';
+
+  uploadMode: 'new' | 'append' = 'new';   // mode choisi par l'user
+  uploadName    = '';
+  selectedFile: File | null = null;
+  uploading     = false;
+  uploadProgress = 0;
+  uploadPhase: 'uploading' | 'processing' | 'done' | '' = '';
+  appendTargetId = '';   // id de la liste cible pour le mode append
+
   private wsSub?: Subscription;
 
   ngOnInit() {
@@ -44,13 +49,11 @@ export class ListHome implements OnInit, OnDestroy {
     this.wsSvc.connect();
     this.wsSub = this.wsSvc.subscribeGlobal().subscribe((evt: any) => {
       if (evt.type === 'LIST_ADDED') {
-        this.listSvc.getList(evt.listId).subscribe(list => {
-          this.lists.update(l => [...l, list]);
-        });
+        this.listSvc.getLists().subscribe(l => this.lists.set(l));
       } else if (evt.type === 'LIST_DELETED') {
-        this.lists.update(ls => ls.filter(l => l.id !== evt.listId));
+        this.listSvc.getLists().subscribe(l => this.lists.set(l));
       } else if (evt.type === 'ASSIGNMENT_CHANGED') {
-        this.load();
+        this.listSvc.getLists().subscribe(l => this.lists.set(l));
       }
     });
   }
@@ -81,40 +84,61 @@ export class ListHome implements OnInit, OnDestroy {
   }
 
   upload() {
-    if (!this.selectedFile || !this.uploadName) return;
-    this.uploading = true;
-    this.uploadProgress = 0;
-    this.uploadPhase = 'uploading';
+    if (!this.selectedFile) return;
+    if (this.uploadMode === 'new' && !this.uploadName) return;
+    if (this.uploadMode === 'append' && !this.appendTargetId) return;
 
-    this.listSvc.uploadList(this.selectedFile, this.uploadName).subscribe({
+    this.uploading      = true;
+    this.uploadProgress = 0;
+    this.uploadPhase    = 'uploading';
+
+    const obs = this.uploadMode === 'new'
+      ? this.listSvc.uploadList(this.selectedFile, this.uploadName)
+      : this.listSvc.appendToList(this.appendTargetId, this.selectedFile);
+
+    obs.subscribe({
       next: (event: any) => {
         if (event.type === HttpEventType.UploadProgress && event.total) {
-          // Pendant le transfert fichier → 0..90%
           this.uploadProgress = Math.round(90 * event.loaded / event.total);
-        } else if (event.type === HttpEventType.Response) {
-          // Serveur a répondu → passe à 100%
-          this.uploadProgress = 100;
-          this.uploadPhase = 'done';
-          setTimeout(() => {
-            this.toast.show('Liste importée avec succès !', 'success');
-            this.showUpload = false;
-            this.uploading = false;
-            this.uploadProgress = 0;
-            this.uploadPhase = '';
-            this.uploadName = '';
-            this.selectedFile = null;
-            this.load();
-          }, 600);
         } else if (event.type === HttpEventType.Sent) {
-          // Requête envoyée, serveur traite → montre "Traitement..."
           this.uploadPhase = 'processing';
+        } else if (event.type === HttpEventType.Response) {
+          this.uploadProgress = 100;
+          this.uploadPhase    = 'done';
+          const result = event.body;
+
+          if (this.uploadMode === 'new') {
+            // Ajouter la nouvelle liste dans le signal
+            if (result) this.lists.update(ls => [...ls, result]);
+            this.toast.show('Liste importée avec succès !', 'success');
+          } else {
+            // Mettre à jour le totalRows de la liste existante
+            if (result) {
+              this.lists.update(ls =>
+                ls.map(l => l.id === result.id ? { ...l, totalRows: result.totalRows } : l)
+              );
+            }
+            this.toast.show('Lignes ajoutées avec succès !', 'success');
+          }
+
+          setTimeout(() => {
+            this.showUpload      = false;
+            this.uploading       = false;
+            this.uploadProgress  = 0;
+            this.uploadPhase     = '';
+            this.uploadName      = '';
+            this.selectedFile    = null;
+            this.appendTargetId  = '';
+            this.uploadMode      = 'new';
+          }, 600);
         }
       },
-      error: () => {
-        this.toast.show('Erreur lors de l\'import', 'error');
-        this.uploading = false;
+      error: (err) => {
+        const msg = err?.error?.message ?? 'Erreur lors de l\'import';
+        this.toast.show(msg, 'error');
+        this.uploading      = false;
         this.uploadProgress = 0;
-        this.uploadPhase = '';
+        this.uploadPhase    = '';
       }
     });
   }

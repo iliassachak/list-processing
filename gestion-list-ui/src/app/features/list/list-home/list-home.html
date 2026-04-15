@@ -73,24 +73,84 @@
 
 @if (showUpload) {
   <div class="modal-overlay" (click)="!uploading && (showUpload=false)">
-    <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal" style="width:500px" (click)="$event.stopPropagation()">
 
       <div class="modal__header">
-        <span class="modal__title">⬆️ Uploader une liste Excel</span>
+        <span class="modal__title">⬆️ Importer un fichier Excel</span>
         @if (!uploading) {
           <button class="btn btn-secondary btn-sm" (click)="showUpload=false">✕</button>
         }
       </div>
 
       @if (!uploading) {
-        <div class="form-group">
-          <label class="form-label">Nom de la liste</label>
-          <input class="form-control" [(ngModel)]="uploadName" placeholder="ex: Liste clients Q1">
+
+        <!-- Sélecteur de mode -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">
+          <div (click)="uploadMode='new'"
+               style="padding:12px;border-radius:10px;cursor:pointer;text-align:center;transition:all .2s"
+               [style.border]="uploadMode==='new' ? '2px solid #4f46e5' : '2px solid #e5e7eb'"
+               [style.background]="uploadMode==='new' ? '#ede9fe' : '#f9fafb'">
+            <div style="font-size:22px;margin-bottom:4px">🆕</div>
+            <div style="font-size:13px;font-weight:600"
+                 [style.color]="uploadMode==='new' ? '#4f46e5' : '#374151'">
+              Nouvelle liste
+            </div>
+            <div style="font-size:11px;color:#6b7280;margin-top:2px">
+              Crée une liste indépendante
+            </div>
+          </div>
+          <div (click)="uploadMode='append'"
+               style="padding:12px;border-radius:10px;cursor:pointer;text-align:center;transition:all .2s"
+               [style.border]="uploadMode==='append' ? '2px solid #4f46e5' : '2px solid #e5e7eb'"
+               [style.background]="uploadMode==='append' ? '#ede9fe' : '#f9fafb'">
+            <div style="font-size:22px;margin-bottom:4px">➕</div>
+            <div style="font-size:13px;font-weight:600"
+                 [style.color]="uploadMode==='append' ? '#4f46e5' : '#374151'">
+              Ajouter à une liste
+            </div>
+            <div style="font-size:11px;color:#6b7280;margin-top:2px">
+              Complète une liste existante
+            </div>
+          </div>
         </div>
+
+        <!-- Mode : nouvelle liste -->
+        @if (uploadMode === 'new') {
+          <div class="form-group">
+            <label class="form-label">Nom de la liste</label>
+            <input class="form-control" [(ngModel)]="uploadName"
+                   placeholder="ex: Liste clients Q1">
+          </div>
+        }
+
+        <!-- Mode : ajouter à une liste existante -->
+        @if (uploadMode === 'append') {
+          <div class="form-group">
+            <label class="form-label">Liste cible</label>
+            <select class="form-control" [(ngModel)]="appendTargetId">
+              <option value="">— Choisir une liste —</option>
+              @for (list of lists(); track list.id) {
+                <option [value]="list.id">
+                  {{list.name}} ({{list.totalRows}} lignes · {{list.columns.length}} colonnes)
+                </option>
+              }
+            </select>
+          </div>
+          @if (appendTargetId) {
+            <div class="alert alert-info" style="font-size:12px;margin-bottom:12px">
+              ℹ️ Seules les colonnes dont le nom correspond exactement à celles de la liste
+              seront importées. Les colonnes inconnues sont ignorées.
+            </div>
+          }
+        }
+
+        <!-- Fichier -->
         <div class="form-group">
           <label class="form-label">Fichier Excel (.xlsx)</label>
-          <input type="file" accept=".xlsx,.xls" (change)="onFile($event)" class="form-control">
+          <input type="file" accept=".xlsx,.xls"
+                 (change)="onFile($event)" class="form-control">
         </div>
+
         @if (selectedFile) {
           <div class="alert alert-info">
             📎 {{selectedFile.name}}
@@ -99,42 +159,42 @@
             </span>
           </div>
         }
+
         <div class="modal__footer">
           <button class="btn btn-secondary" (click)="showUpload=false">Annuler</button>
-          <button class="btn btn-primary" (click)="upload()" [disabled]="!selectedFile || !uploadName">
-            Importer
+          <button class="btn btn-primary" (click)="upload()"
+                  [disabled]="!selectedFile
+                    || (uploadMode==='new' && !uploadName)
+                    || (uploadMode==='append' && !appendTargetId)">
+            @if (uploadMode === 'new') { Importer }
+            @else { Ajouter les lignes }
           </button>
         </div>
 
       } @else {
 
+        <!-- Barre de progression -->
         <div style="padding:8px 0 24px">
-          <!-- Label de phase -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <span style="font-size:14px;color:#374151;font-weight:500">
-              @if (uploadPhase === 'uploading')   { ⬆️ Transfert du fichier... }
-              @if (uploadPhase === 'processing')  { ⚙️ Traitement par le serveur... }
-              @if (uploadPhase === 'done')        { ✅ Import terminé ! }
+              @if (uploadPhase === 'uploading')  { ⬆️ Transfert du fichier... }
+              @if (uploadPhase === 'processing') { ⚙️ Traitement par le serveur... }
+              @if (uploadPhase === 'done')       { ✅ Import terminé ! }
             </span>
             <span style="font-size:13px;font-weight:600;color:#4f46e5">{{uploadProgress}}%</span>
           </div>
-
-          <!-- Barre de progression -->
           <div style="background:#e5e7eb;border-radius:99px;height:10px;overflow:hidden">
             <div [style.width.%]="uploadProgress"
-                 [style.background]="uploadPhase === 'done' ? '#10b981' : '#4f46e5'"
+                 [style.background]="uploadPhase==='done' ? '#10b981' : '#4f46e5'"
                  style="height:100%;border-radius:99px;transition:width .3s ease,background .4s ease">
             </div>
           </div>
-
-          <!-- Infos fichier -->
           <div style="margin-top:12px;font-size:12px;color:#6b7280;text-align:center">
-            📎 {{selectedFile?.name}} ·
-            {{(selectedFile?.size ?? 0 / 1024).toFixed(0)}} Ko
+            📎 {{selectedFile?.name}}
           </div>
         </div>
-      }
 
+      }
     </div>
   </div>
 }

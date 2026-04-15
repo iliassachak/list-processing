@@ -197,8 +197,6 @@ export class ListView implements OnInit, OnDestroy {
     } else if (evt.type === 'ROW_DELETED') {
       this.rows.update(r => r.filter(x => x.id !== evt.rowId));
       this.applyFilterMap();
-    } else if (evt.type === 'ASSIGNMENT_CHANGED') {
-      this.load();
     }
   }
 
@@ -218,6 +216,8 @@ export class ListView implements OnInit, OnDestroy {
       this.gridApi?.stopEditing();
       this.toast.show('Permissions mises à jour', 'info');
     } else if (evt.type === 'ASSIGNMENT_CHANGED') {
+      this.load();
+    } else if (evt.type === 'LIST_ADDED') {
       this.load();
     }
   }
