@@ -5,6 +5,7 @@ import com.iachak.listprocessing.dto.ListDTO;
 import com.iachak.listprocessing.dto.RowDTO;
 import com.iachak.listprocessing.dto.WsGlobalEvent;
 import com.iachak.listprocessing.entity.*;
+import com.iachak.listprocessing.exception.ResourceNotFoundException;
 import com.iachak.listprocessing.repository.ColumnPermissionRepository;
 import com.iachak.listprocessing.repository.ListRepository;
 import com.iachak.listprocessing.repository.ListRowRepository;
@@ -37,7 +38,8 @@ public class ListService {
     }
 
     public ListEntity getEntity(UUID id) {
-        return listRepo.findById(id).orElseThrow(() -> new NoSuchElementException("List not found"));
+        return listRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Liste", id));
     }
 
     public ListDTO getById(UUID id) {

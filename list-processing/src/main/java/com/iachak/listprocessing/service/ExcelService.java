@@ -6,6 +6,8 @@ import com.iachak.listprocessing.entity.ListColumn;
 import com.iachak.listprocessing.entity.ListEntity;
 import com.iachak.listprocessing.entity.ListRow;
 import com.iachak.listprocessing.entity.User;
+import com.iachak.listprocessing.exception.InvalidOperationException;
+import com.iachak.listprocessing.exception.ResourceNotFoundException;
 import com.iachak.listprocessing.repository.ListRepository;
 import com.iachak.listprocessing.repository.ListRowRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,9 @@ public class ExcelService {
 
     @Transactional
     public ListEntity importExcel(MultipartFile file, String name, User uploader) throws IOException {
+        if (file.isEmpty())
+            throw new InvalidOperationException("Le fichier Excel est vide.");
+
         ListEntity list = new ListEntity();
         list.setName(name);
         list.setCreatedBy(uploader);
@@ -39,7 +44,7 @@ public class ExcelService {
         try (XSSFWorkbook wb = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = wb.getSheetAt(0);
             Row header = sheet.getRow(0);
-            if (header == null) throw new IllegalArgumentException("Empty Excel file");
+            if (header == null) throw new InvalidOperationException("Le fichier Excel ne contient pas de ligne d'en-tête.");
 
             List<ListColumn> cols = new ArrayList<>();
             for (Cell cell : header) {
@@ -52,6 +57,11 @@ public class ExcelService {
                 c.setColumnType(inferType(sheet, cell.getColumnIndex()));
                 cols.add(c);
             }
+
+            if (cols.isEmpty())
+                throw new InvalidOperationException(
+                        "Aucune colonne valide trouvée dans la ligne d'en-tête du fichier.");
+
             list.setColumns(cols);
             listRepo.save(list);
 
@@ -93,8 +103,11 @@ public class ExcelService {
     @Transactional
     public ListEntity appendExcel(MultipartFile file, UUID listId, User uploader) throws IOException {
 
+        if (file.isEmpty())
+            throw new InvalidOperationException("Le fichier Excel est vide.");
+
         ListEntity list = listRepo.findById(listId)
-                .orElseThrow(() -> new NoSuchElementException("List not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Liste", listId));
 
         // Index des colonnes existantes (nom → index)
         Map<String, Integer> colIndex = new LinkedHashMap<>();
@@ -106,9 +119,9 @@ public class ExcelService {
 
             Sheet sheet = wb.getSheetAt(0);
             Row header = sheet.getRow(0);
-            if (header == null) {
-                throw new IllegalArgumentException("Empty Excel file");
-            }
+            if (header == null)
+                throw new InvalidOperationException(
+                        "Le fichier Excel ne contient pas de ligne d'en-tête.");
 
             // ===== 1. Lire les colonnes du fichier =====
             Set<String> fileColumns = new LinkedHashSet<>();
@@ -131,11 +144,10 @@ public class ExcelService {
                 Set<String> extra = new HashSet<>(fileColumns);
                 extra.removeAll(expectedColumns);
 
-                throw new IllegalArgumentException(
-                        "Structure Excel invalide. " +
-                                (!missing.isEmpty() ? "Colonnes manquantes: " + missing + ". " : "") +
-                                (!extra.isEmpty() ? "Colonnes en trop: " + extra + "." : "")
-                );
+                throw new InvalidOperationException(
+                        "Structure Excel incompatible avec la liste cible."
+                                + (!missing.isEmpty() ? " Colonnes manquantes : " + missing + "." : "")
+                                + (!extra.isEmpty()   ? " Colonnes inconnues : "  + extra   + "." : ""));
             }
 
             // ===== 3. Mapper colonnes fichier → colonnes existantes =====

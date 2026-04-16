@@ -6,6 +6,7 @@ import com.iachak.listprocessing.dto.RegisterRequest;
 import com.iachak.listprocessing.dto.WsGlobalEvent;
 import com.iachak.listprocessing.entity.Role;
 import com.iachak.listprocessing.entity.User;
+import com.iachak.listprocessing.exception.DuplicateResourceException;
 import com.iachak.listprocessing.repository.UserRepository;
 import com.iachak.listprocessing.security.AppUserDetails;
 import com.iachak.listprocessing.security.AppUserDetailsService;
@@ -46,7 +47,8 @@ public class AuthService {
     public AuthResponse register(RegisterRequest req) {
 
         if (userRepo.existsByUsername(req.username()))
-            throw new IllegalArgumentException("Username already taken");
+            throw new DuplicateResourceException(
+                    "Le nom d'utilisateur \"" + req.username() + "\" est déjà pris.");
 
         User u = new User();
         u.setUsername(req.username());

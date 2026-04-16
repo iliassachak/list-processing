@@ -1,5 +1,12 @@
 <div class="toast-container">
   @for (t of toast.toasts(); track t.id) {
-    <div class="toast toast-{{t.type}}">{{t.message}}</div>
+    <div class="toast toast-{{t.type}}" (click)="toast.remove(t.id)">
+          <span class="toast-icon">
+            @if (t.type === 'success') { ✅ }
+            @if (t.type === 'error')   { ❌ }
+            @if (t.type === 'info')    { ℹ️ }
+          </span>
+      <span>{{t.message}}</span>
+    </div>
   }
 </div>

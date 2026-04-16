@@ -3,6 +3,8 @@ package com.iachak.listprocessing.controller;
 import com.iachak.listprocessing.dto.UserDTO;
 import com.iachak.listprocessing.entity.Role;
 import com.iachak.listprocessing.entity.User;
+import com.iachak.listprocessing.exception.InvalidOperationException;
+import com.iachak.listprocessing.exception.ResourceNotFoundException;
 import com.iachak.listprocessing.repository.UserRepository;
 import com.iachak.listprocessing.security.AppUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -43,14 +45,14 @@ public class UserManagementController {
             @AuthenticationPrincipal UserDetails ud) {
 
         User target = findOrThrow(id);
-        if (PROTECTED_USERNAME.equals(target.getUsername())) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (PROTECTED_USERNAME.equals(target.getUsername()))
+            throw new InvalidOperationException(
+                    "Le compte \"admin\" est protégé et ne peut pas être désactivé.");
         // Un admin ne peut pas se désactiver lui-même
         String caller = ((AppUserDetails) ud).getUser().getUsername();
-        if (caller.equals(target.getUsername())) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (caller.equals(target.getUsername()))
+            throw new InvalidOperationException(
+                    "Vous ne pouvez pas désactiver votre propre compte.");
 
         target.setEnabled(body.get("enabled"));
         return ResponseEntity.ok(UserDTO.from(userRepo.save(target)));
@@ -64,16 +66,16 @@ public class UserManagementController {
             @AuthenticationPrincipal UserDetails ud) {
 
         User target = findOrThrow(id);
-        if (PROTECTED_USERNAME.equals(target.getUsername())) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (PROTECTED_USERNAME.equals(target.getUsername()))
+            throw new InvalidOperationException(
+                    "Le rôle ADMIN du compte \"admin\" ne peut pas être modifié.");
         // Un admin ne peut pas se retirer son propre rôle
         String caller = ((AppUserDetails) ud).getUser().getUsername();
-        if (caller.equals(target.getUsername()) && !body.get("admin")) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (caller.equals(target.getUsername()) && Boolean.FALSE.equals(body.get("admin")))
+            throw new InvalidOperationException(
+                    "Vous ne pouvez pas vous retirer votre propre rôle ADMIN.");
 
-        if (body.get("admin")) {
+        if (Boolean.TRUE.equals(body.get("admin"))) {
             target.getRoles().add(Role.ADMIN);
         } else {
             target.getRoles().remove(Role.ADMIN);
@@ -88,9 +90,9 @@ public class UserManagementController {
             @RequestBody Map<String, String> body) {
 
         String newPassword = body.get("password");
-        if (newPassword == null || newPassword.length() < 6) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (newPassword == null || newPassword.length() < 6)
+            throw new InvalidOperationException(
+                    "Le mot de passe doit contenir au moins 6 caractères.");
         User target = findOrThrow(id);
         target.setPassword(passwordEncoder.encode(newPassword));
         userRepo.save(target);
@@ -99,6 +101,6 @@ public class UserManagementController {
 
     private User findOrThrow(UUID id) {
         return userRepo.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", id));
     }
 }
