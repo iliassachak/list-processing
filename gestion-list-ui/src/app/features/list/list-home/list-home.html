@@ -45,13 +45,14 @@
                         [routerLink]="['/lists/admin',list.id]">
                   ⚙️
                 </button>
-              }
 
-              <button class="btn btn-danger btn-sm btn-icon"
-                      title="Supprimer"
-                      (click)="confirmDelete(list, $event); $event.stopPropagation()">
-                🗑️
-              </button>
+                <button class="btn btn-danger btn-sm btn-icon"
+                        title="Supprimer"
+                        (click)="confirmDelete(list, $event); $event.stopPropagation()">
+                  🗑️
+                </button>
+
+              }
 
             </div>
 
