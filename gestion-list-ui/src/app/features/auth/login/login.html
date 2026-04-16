@@ -15,9 +15,6 @@
         <label class="form-label">Mot de passe</label>
         <input class="form-control" type="password" formControlName="password" placeholder="••••••••">
       </div>
-      @if (error) {
-        <div class="alert alert-warning">{{ error }}</div>
-      }
       <button class="btn btn-primary" style="width:100%" type="submit" [disabled]="loading">
         {{ loading ? 'Connexion...' : 'Se connecter' }}
       </button>

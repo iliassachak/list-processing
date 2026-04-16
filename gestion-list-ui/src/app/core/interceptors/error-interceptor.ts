@@ -22,6 +22,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         if (!isAuthCall) {
           auth.logout();
           toast.show('Votre session a expiré. Veuillez vous reconnecter.', 'error');
+        } else {
+          toast.show(message, 'error')
         }
         // Pour /auth/login → laisser le composant afficher son propre message
       }
